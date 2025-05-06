@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ccp/backend/models"
 	"ccp/backend/routes"
 	"fmt"
 	"log"
@@ -8,7 +9,9 @@ import (
 )
 
 func main() {
+	models.Init()
 	mux := http.NewServeMux()
+	models.Debug(models.ElementsGraph)
 
 	routes.RegisterRoutes(mux)
 
