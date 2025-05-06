@@ -1,97 +1,91 @@
 package main
 
 import (
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-    "os"
-    "strings"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"sync"
+	"time"
 
-    "github.com/PuerkitoBio/goquery"
+	"github.com/PuerkitoBio/goquery"
 )
 
 func main() {
-    url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
+	url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
+	elements := scrapeElements(url)
 
-    resp, err := http.Get(url)
-    if err != nil {
-        log.Fatalf("Failed to fetch page: %v", err)
-    }
-    defer resp.Body.Close()
+	fmt.Printf("Total elemen ditemukan: %d\n", len(elements))
+	saveElementsToFile(elements, "../backend/data/elements.json")
+}
 
-    if resp.StatusCode != 200 {
-        log.Fatalf("Status code error: %d %s", resp.StatusCode, resp.Status)
-    }
+func scrapeElements(url string) []Element {
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Failed to fetch page: %v", err)
+	}
+	defer resp.Body.Close()
 
-    doc, err := goquery.NewDocumentFromReader(resp.Body)
-    if err != nil {
-        log.Fatalf("Failed to parse HTML: %v", err)
-    }
+	if resp.StatusCode != 200 {
+		log.Fatalf("Status code error: %d %s", resp.StatusCode, resp.Status)
+	}
 
-    elementRecipes := make(map[string][][]string)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		log.Fatalf("Failed to parse HTML: %v", err)
+	}
 
-    doc.Find("table.list-table.col-list.icon-hover").Each(func(_ int, table *goquery.Selection) {
-        table.Find("tr").Each(func(i int, row *goquery.Selection) {
-            if i == 0 {
-                return // skip header
-            }
+	var wg sync.WaitGroup
+	elementsChan := make(chan Element, 100) // Buffered channel to collect elements
 
-            cells := row.Find("td")
-            if cells.Length() != 2 {
-                return
-            }
+	doc.Find("table.list-table.col-list.icon-hover").Each(func(_ int, table *goquery.Selection) {
+		table.Find("tr").Each(func(i int, row *goquery.Selection) {
+			if i == 0 {
+				return // skip header
+			}
 
-            elementName := strings.TrimSpace(cells.Eq(0).Text())
-            if elementName == "" || strings.ToLower(elementName) == "element" {
-                return
-            }
+			wg.Add(1)
+			go func(row *goquery.Selection) {
+				defer wg.Done()
+				element := parseElement(row)
+				if element != nil {
+					elementsChan <- *element
+				}
+			}(row)
+		})
+	})
 
-            recipes := [][]string{}
-            cells.Eq(1).Find("li").Each(func(_ int, li *goquery.Selection) {
-                ingredients := []string{}
-                li.Find("a").Each(func(_ int, a *goquery.Selection) {
-                    text := strings.TrimSpace(a.Text())
-                    if text != "" && strings.ToLower(text) != "file" {
-                        ingredients = append(ingredients, text)
-                    }
-                })
-                if len(ingredients) > 0 {
-                    recipes = append(recipes, ingredients)
-                }
-            })
+	// Wait for all goroutines to finish
+	go func() {
+		wg.Wait()
+		close(elementsChan)
+	}()
 
-            if len(recipes) == 0 {
-                recipes = append(recipes, []string{}) // element dasar
-            }
+	// Collect elements from the channel
+	elements := []Element{}
+	for element := range elementsChan {
+		elements = append(elements, element)
+	}
 
-            elementRecipes[elementName] = recipes
-        })
-    })
+	return elements
+}
 
-    fmt.Printf("Total elemen ditemukan: %d\n", len(elementRecipes))
-    count := 0
-    for name, recs := range elementRecipes {
-        fmt.Printf("%s:\n", name)
-        for _, r := range recs {
-            fmt.Printf("  - %v\n", r)
-        }
-        count++
-        if count >= 5 {
-            break
-        }
-    }
+func saveElementsToFile(elements []Element, filePath string) {
+	log.Printf("Saving elements to file: %s", filePath)
+	start := time.Now()
 
-    // Simpan ke file JSON
-    file, err := os.Create("../backend/data/recipes.json")
-    if err != nil {
-        log.Fatalf("Failed to create file: %v", err)
-    }
-    defer file.Close()
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Fatalf("Failed to create file: %v", err)
+	}
+	defer file.Close()
 
-    encoder := json.NewEncoder(file)
-    encoder.SetIndent("", "  ")
-    if err := encoder.Encode(elementRecipes); err != nil {
-        log.Fatalf("Failed to write JSON: %v", err)
-    }
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(elements); err != nil {
+		log.Fatalf("Failed to write JSON: %v", err)
+	}
+
+	log.Printf("Elements saved to %s in %v", filePath, time.Since(start))
 }
