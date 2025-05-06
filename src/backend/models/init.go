@@ -10,8 +10,6 @@ func InitElementsGraph() {
 		panic(err)
 	}
 
-	nameToNode := make(map[string]*ElementsGraphNode)
-
 	// Step 1: Create nodes for each element
 	for _, el := range elements {
 		node := &ElementsGraphNode{

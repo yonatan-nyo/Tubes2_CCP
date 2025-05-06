@@ -28,4 +28,9 @@ type RecipeTreeNode struct {
 	Child     *RecipeTreeNode `json:"child"`
 }
 
-// RecipeTreeNode can point to the same child indicating that they are the parent(recipe) of the same child
+var nameToNode = make(map[string]*ElementsGraphNode)
+
+func GetElementsGraphNodeByName(name string) (*ElementsGraphNode, bool) {
+	node, exists := nameToNode[name]
+	return node, exists
+}
