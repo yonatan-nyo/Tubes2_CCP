@@ -83,7 +83,7 @@ func main() {
     }
 
     // Simpan ke file JSON
-    file, err := os.Create("little_alchemy2_recipes.json")
+    file, err := os.Create("../backend/data/recipes.json")
     if err != nil {
         log.Fatalf("Failed to create file: %v", err)
     }
