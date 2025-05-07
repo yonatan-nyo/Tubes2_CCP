@@ -26,13 +26,6 @@ var ElementsGraph = &ElementsGraphNode{
 	IsVisited:                 false,
 }
 
-type RecipeTreeNode struct {
-	Name      string          `json:"name"`
-	ImagePath string          `json:"image_path"`
-	Recipe    *Recipe         `json:"recipe"`
-	Child     *RecipeTreeNode `json:"child"`
-}
-
 var nameToNode = make(map[string]*ElementsGraphNode)
 
 func GetElementsGraphNodeByName(name string) (*ElementsGraphNode, bool) {
