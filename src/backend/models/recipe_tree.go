@@ -10,6 +10,12 @@ type RecipeTreeNode struct {
 	Element2  *RecipeTreeNode `json:"element_2,omitempty"`
 }
 
+// Check if the element is a base element
+// Base elements: Air, Water, Earth, Fire
+func isBaseElement(name string) bool {
+	return name == "Air" || name == "Water" || name == "Earth" || name == "Fire"
+}
+
 // ErrElementNotFound: element not found in graph
 func ErrElementNotFound(name string) error {
 	return errors.New("element not found: " + name)
@@ -115,8 +121,162 @@ func GetRecipeTreeBFS(target string) (*RecipeTreeNode, error) {
 	return root, nil
 }
 
-// Check if the element is a base element
-// Base elements: Air, Water, Earth, Fire
-func isBaseElement(name string) bool {
-	return name == "Air" || name == "Water" || name == "Earth" || name == "Fire"
+
+func GetRecipeTreeBidirectional(target string) (*RecipeTreeNode, error) {
+	targetNode, ok := nameToNode[target]
+	if !ok {
+		return nil, ErrElementNotFound(target)
+	}
+
+	if isBaseElement(target) {
+		return &RecipeTreeNode{
+			Name:      target,
+			ImagePath: GetImagePath(targetNode.ImagePath),
+		}, nil
+	}
+
+	parentRecipes := make(map[string]*Recipe)
+
+	forwardQueue := []*ElementsGraphNode{targetNode}
+	forwardVisited := map[string]bool{target: true}
+
+	backwardVisited := map[string]bool{
+		"Air": true, "Water": true, "Earth": true, "Fire": true,
+	}
+
+	distanceFromBase := map[string]int{
+		"Air": 0, "Water": 0, "Earth": 0, "Fire": 0,
+	}
+
+	baseQueue := []*ElementsGraphNode{}
+	for _, name := range []string{"Air", "Water", "Earth", "Fire"} {
+		if baseNode, exists := nameToNode[name]; exists {
+			baseQueue = append(baseQueue, baseNode)
+		}
+	}
+
+	for len(baseQueue) > 0 {
+		node := baseQueue[0]
+		baseQueue = baseQueue[1:]
+
+		currentDistance := distanceFromBase[node.Name]
+		nextDistance := currentDistance + 1
+
+		for _, recipe := range node.RecipesToMakeOtherElement {
+			resultName := recipe.TargetElementName
+			resultNode, exists := nameToNode[resultName]
+			if !exists {
+				continue
+			}
+
+			if recipe.ElementOne != nil && (recipe.ElementTwo != nil || isBaseElement(recipe.ElementOne.Name)) {
+				if _, visited := distanceFromBase[resultName]; !visited || nextDistance < distanceFromBase[resultName] {
+					distanceFromBase[resultName] = nextDistance
+					backwardVisited[resultName] = true
+					parentRecipes[resultName] = recipe
+					baseQueue = append(baseQueue, resultNode)
+				}
+			}
+		}
+	}
+
+	var connectionNode string
+	minDistance := -1
+
+	for len(forwardQueue) > 0 {
+		node := forwardQueue[0]
+		forwardQueue = forwardQueue[1:]
+
+		if backwardVisited[node.Name] {
+			forwardDistance := 0 // Not tracked
+			backwardDistance := distanceFromBase[node.Name]
+			totalDistance := forwardDistance + backwardDistance
+
+			if minDistance == -1 || totalDistance < minDistance {
+				minDistance = totalDistance
+				connectionNode = node.Name
+			}
+		}
+
+		for _, recipe := range node.RecipesToMakeThisElement {
+			if recipe.ElementOne == nil || (recipe.ElementTwo == nil && !isBaseElement(recipe.ElementOne.Name)) {
+				continue
+			}
+
+			for _, ingredient := range []*ElementsGraphNode{recipe.ElementOne, recipe.ElementTwo} {
+				if ingredient == nil {
+					continue
+				}
+
+				ingredientName := ingredient.Name
+				if !forwardVisited[ingredientName] {
+					forwardVisited[ingredientName] = true
+					forwardQueue = append(forwardQueue, ingredient)
+
+					if _, exists := parentRecipes[ingredientName]; !exists {
+						var otherElement *ElementsGraphNode
+						if recipe.ElementOne == ingredient {
+							otherElement = recipe.ElementTwo
+						} else {
+							otherElement = recipe.ElementOne
+						}
+
+						parentRecipes[ingredientName] = &Recipe{
+							ElementOne:        ingredient,
+							ElementTwo:        otherElement,
+							TargetElementName: node.Name,
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if connectionNode == "" {
+		return nil, errors.New("no path found from base elements to target")
+	}
+
+	return buildTreeFromParents(connectionNode, target, parentRecipes), nil
+}
+
+func buildTreeFromParents(start, target string, parentRecipes map[string]*Recipe) *RecipeTreeNode {
+	treeNodes := make(map[string]*RecipeTreeNode)
+
+	var buildNode func(name string) *RecipeTreeNode
+	buildNode = func(name string) *RecipeTreeNode {
+		if node, exists := treeNodes[name]; exists {
+			return node
+		}
+
+		elemNode, exists := nameToNode[name]
+		if !exists {
+			return nil
+		}
+
+		treeNode := &RecipeTreeNode{
+			Name:      name,
+			ImagePath: GetImagePath(elemNode.ImagePath),
+		}
+		treeNodes[name] = treeNode
+
+		if isBaseElement(name) || name == start {
+			return treeNode
+		}
+
+		recipe, exists := parentRecipes[name]
+		if !exists {
+			return treeNode
+		}
+
+		if recipe.ElementOne != nil {
+			treeNode.Element1 = buildNode(recipe.ElementOne.Name)
+		}
+		if recipe.ElementTwo != nil {
+			treeNode.Element2 = buildNode(recipe.ElementTwo.Name)
+		}
+
+		return treeNode
+	}
+
+	return buildNode(target)
 }
