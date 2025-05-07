@@ -15,113 +15,104 @@ func ErrElementNotFound(name string) error {
 	return errors.New("element not found: " + name)
 }
 
-// Return tree with least node count
-func GetRecipeTree(target string) (*RecipeTreeNode, error) {
-	// Value map (validasi)
+func GetRecipeTreeDFS(target string) (*RecipeTreeNode, error) {
 	targetNode, exists := nameToNode[target]
 	if !exists {
 		return nil, ErrElementNotFound(target)
 	}
-
-	// Base element: Air, Water, Earth, Fire
-	if len(targetNode.RecipesToMakeThisElement) == 0 {
-		return &RecipeTreeNode{
-			Name:      targetNode.Name,
-			ImagePath: GetImagePath(targetNode.ImagePath),
-		}, nil
-	}
-
-	var bestTree *RecipeTreeNode
-	minNodeCount := -1
-
-	for _, recipe := range targetNode.RecipesToMakeThisElement {
-		visited := map[string]bool{} // Avoid infinite cycle
-		tree := &RecipeTreeNode{
-			Name:      targetNode.Name,
-			ImagePath: GetImagePath(targetNode.ImagePath),
-			Element1:  buildRecipeTree(recipe.ElementOne, visited),
-			Element2:  buildRecipeTree(recipe.ElementTwo, visited),
-		}
-
-		count := countRecipeTreeNode(tree)
-
-		if minNodeCount == -1 || count < minNodeCount {
-			minNodeCount = count
-			bestTree = tree
-		}
-	}
-
-	if bestTree == nil {
-		return nil, errors.New("no valid recipe tree could be constructed")
-	}
-
-	return bestTree, nil
+	visited := make(map[string]bool)
+	return buildRecipeTreeDFS(targetNode, visited), nil
 }
 
-func buildRecipeTree(node *ElementsGraphNode, visited map[string]bool) *RecipeTreeNode {
-	// Basis 1: node kosong
+func buildRecipeTreeDFS(node *ElementsGraphNode, visited map[string]bool) *RecipeTreeNode {
 	if node == nil {
 		return nil
 	}
 
-	// Always create nodes for base elements regardless of visited status
 	if isBaseElement(node.Name) {
-		return &RecipeTreeNode{
-			Name:      node.Name,
-			ImagePath: GetImagePath(node.ImagePath),
-		}
+		return &RecipeTreeNode{Name: node.Name, ImagePath: GetImagePath(node.ImagePath)}
 	}
 
-	// Untuk non-base elements
 	if visited[node.Name] {
 		return nil
 	}
 	visited[node.Name] = true
 
-	// Base element or no recipe
 	if len(node.RecipesToMakeThisElement) == 0 {
-		return &RecipeTreeNode{
-			Name:      node.Name,
-			ImagePath: GetImagePath(node.ImagePath),
-		}
+		return &RecipeTreeNode{Name: node.Name, ImagePath: GetImagePath(node.ImagePath)}
 	}
 
-	// Use the first recipe
 	best := node.RecipesToMakeThisElement[0]
 
 	tree := &RecipeTreeNode{
 		Name:      node.Name,
 		ImagePath: GetImagePath(node.ImagePath),
-	}
-
-	// Create a copy of the visited map for each branch to prevent cross-branch interference
-	visitedElement1 := make(map[string]bool)
-	visitedElement2 := make(map[string]bool)
-
-	for k, v := range visited {
-		visitedElement1[k] = v
-		visitedElement2[k] = v
-	}
-
-	// Proses element pertama
-	if best.ElementOne != nil {
-		tree.Element1 = buildRecipeTree(best.ElementOne, visitedElement1)
-	}
-
-	// Proses element kedua
-	if best.ElementTwo != nil {
-		tree.Element2 = buildRecipeTree(best.ElementTwo, visitedElement2)
+		Element1:  buildRecipeTreeDFS(best.ElementOne, visited),
+		Element2:  buildRecipeTreeDFS(best.ElementTwo, visited),
 	}
 
 	return tree
 }
 
-// Count Recipe Tree node
-func countRecipeTreeNode(tree *RecipeTreeNode) int {
-	if tree == nil {
-		return 0
+func GetRecipeTreeBFS(target string) (*RecipeTreeNode, error) {
+	rootNode, exists := nameToNode[target]
+	if !exists {
+		return nil, ErrElementNotFound(target)
 	}
-	return 1 + countRecipeTreeNode(tree.Element1) + countRecipeTreeNode(tree.Element2)
+
+	type QueueItem struct {
+		Node    *ElementsGraphNode
+		TreeRef **RecipeTreeNode
+	}
+	visited := make(map[string]bool)
+
+	root := &RecipeTreeNode{
+		Name:      rootNode.Name,
+		ImagePath: GetImagePath(rootNode.ImagePath),
+	}
+	queue := []QueueItem{{Node: rootNode, TreeRef: &root}}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		node := current.Node
+		treePtr := current.TreeRef
+
+		if isBaseElement(node.Name) || len(node.RecipesToMakeThisElement) == 0 {
+			continue
+		}
+
+		best := node.RecipesToMakeThisElement[0]
+
+		if best.ElementOne != nil {
+			elem1 := &RecipeTreeNode{
+				Name:      best.ElementOne.Name,
+				ImagePath: GetImagePath(best.ElementOne.ImagePath),
+			}
+			(*treePtr).Element1 = elem1
+
+			if !isBaseElement(elem1.Name) && !visited[elem1.Name] {
+				visited[elem1.Name] = true
+				queue = append(queue, QueueItem{Node: best.ElementOne, TreeRef: &(*treePtr).Element1})
+			}
+		}
+
+		if best.ElementTwo != nil {
+			elem2 := &RecipeTreeNode{
+				Name:      best.ElementTwo.Name,
+				ImagePath: GetImagePath(best.ElementTwo.ImagePath),
+			}
+			(*treePtr).Element2 = elem2
+
+			if !isBaseElement(elem2.Name) && !visited[elem2.Name] {
+				visited[elem2.Name] = true
+				queue = append(queue, QueueItem{Node: best.ElementTwo, TreeRef: &(*treePtr).Element2})
+			}
+		}
+	}
+
+	return root, nil
 }
 
 // Check if the element is a base element
