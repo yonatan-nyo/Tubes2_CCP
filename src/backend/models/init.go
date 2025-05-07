@@ -38,8 +38,9 @@ func InitElementsGraph() {
 
 			// Check for duplicates before appending
 			recipe := &Recipe{
-				ElementOne: node1,
-				ElementTwo: node2,
+				ElementOne:        node1,
+				ElementTwo:        node2,
+				TargetElementName: resultNode.Name,
 			}
 
 			// Only add the recipe if it's not already present
@@ -50,7 +51,8 @@ func InitElementsGraph() {
 			if !containsRecipe(node1.RecipesToMakeOtherElement, recipe) {
 				node1.RecipesToMakeOtherElement = append(node1.RecipesToMakeOtherElement, recipe)
 			}
-			if !containsRecipe(node2.RecipesToMakeOtherElement, recipe) {
+			// Hanya tambahkan ke node2 jika berbeda
+			if node1 != node2 && !containsRecipe(node2.RecipesToMakeOtherElement, recipe) {
 				node2.RecipesToMakeOtherElement = append(node2.RecipesToMakeOtherElement, recipe)
 			}
 		}
@@ -66,54 +68,27 @@ func InitElementsGraph() {
 			})
 		}
 	}
-
-	// Step 4: Traverse using DFS to establish connections
-	visited := make(map[string]bool)
-
-	var dfs func(node *ElementsGraphNode)
-	dfs = func(node *ElementsGraphNode) {
-		if visited[node.Name] {
-			return
-		}
-		visited[node.Name] = true
-		node.IsVisited = true
-
-		// For each recipe that uses this element
-		for _, recipe := range node.RecipesToMakeOtherElement {
-			// Skip if recipe is incomplete
-			if recipe.ElementTwo == nil {
-				continue
-			}
-
-			// Check if both ingredients of this recipe are visited
-			if !recipe.ElementOne.IsVisited || !recipe.ElementTwo.IsVisited {
-				continue
-			}
-
-			// Find the resulting element for this recipe
-			for _, potential := range nameToNode {
-				for _, r := range potential.RecipesToMakeThisElement {
-					if recipesMatch(r, recipe) {
-						dfs(potential)
-					}
-				}
-			}
-		}
-	}
-
-	// Start DFS from basic elements
-	for _, name := range basics {
-		if node, ok := nameToNode[name]; ok {
-			dfs(node)
-		}
-	}
-
 }
 
 func containsRecipe(recipes []*Recipe, recipe *Recipe) bool {
 	for _, r := range recipes {
-		if r.ElementOne == recipe.ElementOne && r.ElementTwo == recipe.ElementTwo {
-			return true
+		// Handle nil cases properly
+		// Case 1: Both recipes have ElementTwo set
+		if r.ElementTwo != nil && recipe.ElementTwo != nil {
+			sameDirect := r.ElementOne.Name == recipe.ElementOne.Name && r.ElementTwo.Name == recipe.ElementTwo.Name
+			sameReverse := r.ElementOne.Name == recipe.ElementTwo.Name && r.ElementTwo.Name == recipe.ElementOne.Name
+			if (sameDirect || sameReverse) && r.TargetElementName == recipe.TargetElementName {
+				return true
+			}
+		} else if r.ElementTwo == nil && recipe.ElementTwo == nil {
+			// Case 2: Both recipes have ElementTwo as nil
+			if r.ElementOne.Name == recipe.ElementOne.Name && r.TargetElementName == recipe.TargetElementName {
+				return true
+			}
+		} else {
+			// Case 3: One has ElementTwo as nil and the other doesn't
+			// These are different recipes
+			continue
 		}
 	}
 	return false
