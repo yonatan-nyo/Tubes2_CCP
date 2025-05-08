@@ -22,7 +22,36 @@ func InitElementsGraph() {
 		nameToNode[el.Name] = node
 	}
 
-	// Step 2: Populate all RecipesToMakeThisElement and RecipesToMakeOtherElement
+	// Step 2: Find all implicit base elements
+	// Elements those are used as ingredients but have no recipes to make them
+	ingredientSet := make(map[string]bool) 
+	resultSet := make(map[string]bool)    
+
+	for _, el := range elements {
+		resultSet[el.Name] = true
+		for _, r := range el.Recipes {
+			if len(r) != 2 {
+				continue
+			}
+			ingredientSet[r[0]] = true
+			ingredientSet[r[1]] = true
+		}
+	}
+
+	for ing := range ingredientSet {
+		if _, exists := nameToNode[ing]; !exists {
+			continue
+		}
+		node := nameToNode[ing]
+		if len(node.RecipesToMakeThisElement) == 0 {
+			ElementsGraph.RecipesToMakeOtherElement = append(ElementsGraph.RecipesToMakeOtherElement, &Recipe{
+				ElementOne: node,
+				ElementTwo: nil,
+			})
+		}
+	}
+
+	// Step 3: Populate all RecipesToMakeThisElement and RecipesToMakeOtherElement
 	for _, el := range elements {
 		resultNode := nameToNode[el.Name]
 		for _, r := range el.Recipes {
@@ -58,7 +87,7 @@ func InitElementsGraph() {
 		}
 	}
 
-	// Step 3: Add basic elements to root node
+	// Step 4: Add basic elements to root node
 	basics := []string{"Air", "Earth", "Fire", "Water"}
 	for _, name := range basics {
 		if node, ok := nameToNode[name]; ok {
