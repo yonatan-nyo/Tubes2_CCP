@@ -8,7 +8,6 @@ import (
 func RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/ws", controllers.WebSocketHandler)
 	mux.HandleFunc("/api/graph", controllers.GetElementsGraph)
-	mux.HandleFunc("/api/tree", controllers.RecipeTreeHandler)
 
 	// Serve static files from the "public" folder
 	fileServer := http.FileServer(http.Dir("./public"))

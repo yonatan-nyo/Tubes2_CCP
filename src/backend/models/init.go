@@ -4,6 +4,8 @@ func Init() {
 	InitElementsGraph()
 }
 
+var baseElements = []string{"Air", "Earth", "Fire", "Water"}
+
 func InitElementsGraph() {
 	elements, err := LoadElementsFromJSON("./data/elements.json")
 	if err != nil {
@@ -22,32 +24,31 @@ func InitElementsGraph() {
 		nameToNode[el.Name] = node
 	}
 
-	// Step 2: Find all implicit base elements
-	// Elements those are used as ingredients but have no recipes to make them
-	ingredientSet := make(map[string]bool) 
-	resultSet := make(map[string]bool)    
-
 	for _, el := range elements {
-		resultSet[el.Name] = true
-		for _, r := range el.Recipes {
-			if len(r) != 2 {
-				continue
+		node := nameToNode[el.Name]
+		// Helper function to ensure a node exists in the map
+		ensureNodeExists := func(element *ElementsGraphNode) {
+			if _, exists := nameToNode[element.Name]; !exists {
+				nameToNode[element.Name] = &ElementsGraphNode{
+					Name:                      element.Name,
+					ImagePath:                 element.ImagePath,
+					RecipesToMakeThisElement:  []*Recipe{},
+					RecipesToMakeOtherElement: []*Recipe{},
+					IsVisited:                 false,
+				}
+				// Append to baseElements
+				baseElements = append(baseElements, element.Name)
 			}
-			ingredientSet[r[0]] = true
-			ingredientSet[r[1]] = true
 		}
-	}
 
-	for ing := range ingredientSet {
-		if _, exists := nameToNode[ing]; !exists {
-			continue
-		}
-		node := nameToNode[ing]
-		if len(node.RecipesToMakeThisElement) == 0 {
-			ElementsGraph.RecipesToMakeOtherElement = append(ElementsGraph.RecipesToMakeOtherElement, &Recipe{
-				ElementOne: node,
-				ElementTwo: nil,
-			})
+		// Check recipes for uninitialized nodes
+		for _, r := range append(node.RecipesToMakeThisElement, node.RecipesToMakeOtherElement...) {
+			if r.ElementOne != nil {
+				ensureNodeExists(r.ElementOne)
+			}
+			if r.ElementTwo != nil {
+				ensureNodeExists(r.ElementTwo)
+			}
 		}
 	}
 
@@ -118,6 +119,15 @@ func containsRecipe(recipes []*Recipe, recipe *Recipe) bool {
 			// Case 3: One has ElementTwo as nil and the other doesn't
 			// These are different recipes
 			continue
+		}
+	}
+	return false
+}
+
+func IsBaseElement(name string) bool {
+	for _, base := range baseElements {
+		if name == base {
+			return true
 		}
 	}
 	return false

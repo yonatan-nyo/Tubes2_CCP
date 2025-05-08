@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	"fmt"
+	"ccp/backend/models"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -9,12 +10,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type RecipeTreeRequest struct {
+	Target       string `json:"target"`
+	Mode         string `json:"mode"`
+	FindBestTree bool   `json:"find_best_tree"`
+	MaxTreeCount int    `json:"max_tree_count"`
+	DelayMs      int    `json:"delay_ms"`
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
 func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,41 +32,62 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	ticker := time.NewTicker(400 * time.Millisecond)
-	defer ticker.Stop()
+	for {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("Read error:", err)
+			break
+		}
 
-	done := make(chan struct{})
+		var req RecipeTreeRequest
+		if err := json.Unmarshal(msg, &req); err != nil {
+			log.Println("Invalid JSON format:", err)
+			continue
+		}
 
-	go func() {
-		for {
-			messageType, msg, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("Read error:", err)
-				close(done)
-				return
-			}
+		// Create channel to buffer recipe tree nodes
+		updateChan := make(chan *models.RecipeTreeNode, 100)
 
-			log.Printf("Received: %s\n", msg)
-
-			response := fmt.Sprintf("Echo: %s", msg)
-			if err := conn.WriteMessage(messageType, []byte(response)); err != nil {
-				log.Println("Write error:", err)
-				close(done)
-				return
+		// Signal function sends tree nodes to the channel
+		signallerFn := func(node *models.RecipeTreeNode) {
+			if req.DelayMs > 0 { // Only send updates if DelayMs is greater than 0
+				select {
+				case updateChan <- node:
+				default:
+					log.Println("Warning: updateChan full, dropping node")
+				}
 			}
 		}
-	}()
 
-	for {
-		select {
-		case <-done:
-			return
-		case t := <-ticker.C:
-			message := fmt.Sprintf("Tick at %s", t.Format("15:04:05.000"))
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
-				log.Println("Tick send error:", err)
-				return
-			}
+		// Launch goroutine to stream updates at intervals
+		if req.DelayMs > 0 {
+			go func() {
+				ticker := time.NewTicker(time.Duration(req.DelayMs) * time.Millisecond)
+				defer ticker.Stop()
+
+				for node := range updateChan {
+					<-ticker.C
+					if err := conn.WriteJSON(node); err != nil {
+						log.Println("Write error:", err)
+						return
+					}
+				}
+			}()
+		}
+
+		// Generate the tree with live updates
+		tree, err := models.GenerateRecipeTree(req.Target, req.Mode, req.FindBestTree, req.MaxTreeCount, signallerFn)
+		close(updateChan) // close after final tree built
+
+		if err != nil {
+			conn.WriteJSON(map[string]string{"error": err.Error()})
+			continue
+		}
+
+		// Final full tree send (optional)
+		if err := conn.WriteJSON(tree); err != nil {
+			log.Println("Final write error:", err)
+			break
 		}
 	}
 }
