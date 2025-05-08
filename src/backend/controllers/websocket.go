@@ -18,6 +18,11 @@ type RecipeTreeRequest struct {
 	DelayMs      int    `json:"delay_ms"`
 }
 
+type TreeUpdate struct {
+	BestTree      *models.RecipeTreeNode `json:"best_tree"`
+	ExploringTree *models.RecipeTreeNode `json:"exploring_tree"`
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -45,16 +50,16 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Create channel to buffer recipe tree nodes
-		updateChan := make(chan *models.RecipeTreeNode, 100)
+		// Create channel to buffer recipe tree updates
+		updateChan := make(chan TreeUpdate, 100)
 
-		// Signal function sends tree nodes to the channel
-		signallerFn := func(node *models.RecipeTreeNode) {
+		// Signal function sends both bestTree and exploringTree to the channel
+		signallerFn := func(bestTree *models.RecipeTreeNode, exploringTree *models.RecipeTreeNode) {
 			if req.DelayMs > 0 { // Only send updates if DelayMs is greater than 0
 				select {
-				case updateChan <- node:
+				case updateChan <- TreeUpdate{BestTree: bestTree, ExploringTree: exploringTree}:
 				default:
-					log.Println("Warning: updateChan full, dropping node")
+					log.Println("Warning: updateChan full, dropping update")
 				}
 			}
 		}
@@ -65,9 +70,9 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 				ticker := time.NewTicker(time.Duration(req.DelayMs) * time.Millisecond)
 				defer ticker.Stop()
 
-				for node := range updateChan {
+				for update := range updateChan {
 					<-ticker.C
-					if err := conn.WriteJSON(node); err != nil {
+					if err := conn.WriteJSON(update); err != nil {
 						log.Println("Write error:", err)
 						return
 					}

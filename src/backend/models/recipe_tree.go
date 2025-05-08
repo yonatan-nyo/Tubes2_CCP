@@ -44,7 +44,7 @@ func GenerateRecipeTree(
 	mode string,
 	findBestTree bool,
 	maxTreeCount int,
-	signallerFn func(*RecipeTreeNode),
+	signallerFn func(*RecipeTreeNode, *RecipeTreeNode),
 ) (*RecipeTreeNode, error) {
 	// Validate input parameters
 	if err := ValidateInputParams(target, mode, findBestTree, maxTreeCount); err != nil {
@@ -82,12 +82,21 @@ func ProcessRecipeTree(
 	mode string,
 	findBestTree bool,
 	maxTreeCount int, //get passed when findBestTree is false
-	signalTreeChange func(*RecipeTreeNode), // gets passed on both
+	signalTreeChange func(*RecipeTreeNode, *RecipeTreeNode), // gets passed on both
+	// signalTreeChange to signal the tree change to the queue for tree process animation
 ) error {
 	if mode == "dfs" {
 		if findBestTree {
-			fmt.Println("DFSFindBestTree not implemented")
-			return fmt.Errorf("DFSFindBestTree not implemented")
+
+			bestTree, err := GenerateDFSFindBestTree(
+				target,
+				signalTreeChange,
+			)
+			if err != nil {
+				return fmt.Errorf("DFSFindBestTree error: %v", err)
+			}
+			*rootRecipeTree = *bestTree
+			return nil
 		} else {
 			fmt.Println("DFSFindTreeWithMaxCount not implemented")
 			return fmt.Errorf("DFSFindTreeWithMaxCount not implemented")
