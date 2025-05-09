@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"sync"
 )
 
 // PartialTree represents a work-in-progress tree with nodes yet to be expanded.
@@ -20,7 +21,7 @@ func BFSFindTrees(
 	}
 
 	// If it's a base element, return directly
-	if len(targetGraphNode.RecipesToMakeThisElement) == 0 {
+	if len(targetGraphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(targetGraphNode.Name) {
 		return []*RecipeTreeNode{
 			{
 				Name:      targetGraphNode.Name,
@@ -29,99 +30,102 @@ func BFSFindTrees(
 		}, nil
 	}
 
-	type PartialTree struct {
-		Node    *RecipeTreeNode
-		Pending []*RecipeTreeNode
-	}
+	queue := make(chan PartialTree, 1000) // Buffered channel to avoid blocking
+	results := make(chan *RecipeTreeNode, maxTreeCount)
+	var wg sync.WaitGroup
 
-	queue := []PartialTree{}
+	var mu sync.Mutex
+	resultCount := 0
 
-	// Start with all recipes for the target element
+	// Initial recipes
 	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
-		left := &RecipeTreeNode{
-			Name:      recipe.ElementOne.Name,
-			ImagePath: recipe.ElementOne.ImagePath,
-		}
-		right := &RecipeTreeNode{
-			Name:      recipe.ElementTwo.Name,
-			ImagePath: recipe.ElementTwo.ImagePath,
-		}
+		left := &RecipeTreeNode{Name: recipe.ElementOne.Name, ImagePath: recipe.ElementOne.ImagePath}
+		right := &RecipeTreeNode{Name: recipe.ElementTwo.Name, ImagePath: recipe.ElementTwo.ImagePath}
 		root := &RecipeTreeNode{
 			Name:      targetGraphNode.Name,
 			ImagePath: targetGraphNode.ImagePath,
 			Element1:  left,
 			Element2:  right,
 		}
-		queue = append(queue, PartialTree{
+		queue <- PartialTree{
 			Node:    root,
 			Pending: []*RecipeTreeNode{left, right},
-		})
-	}
-
-	var result []*RecipeTreeNode
-
-	for len(queue) > 0 && len(result) < maxTreeCount {
-		current := queue[0]
-		queue = queue[1:]
-
-		pending := current.Pending
-
-		if len(pending) == 0 {
-			// Fully constructed tree
-			result = append(result, current.Node)
-			continue
-		}
-
-		// Expand the first pending node
-		toExpand := pending[0]
-		remaining := pending[1:]
-
-		graphNode := getElementByName(targetGraphNode, toExpand.Name)
-		if graphNode == nil {
-			continue // Skip unknown nodes
-		}
-
-		// If base element, mark and continue
-		if len(graphNode.RecipesToMakeThisElement) == 0 {
-			queue = append(queue, PartialTree{Node: current.Node, Pending: remaining})
-			continue
-		}
-
-		// Try all recipes for this node
-		for _, recipe := range graphNode.RecipesToMakeThisElement {
-			// Create new subnodes
-			left := &RecipeTreeNode{
-				Name:      recipe.ElementOne.Name,
-				ImagePath: recipe.ElementOne.ImagePath,
-			}
-			right := &RecipeTreeNode{
-				Name:      recipe.ElementTwo.Name,
-				ImagePath: recipe.ElementTwo.ImagePath,
-			}
-
-			// Clone full tree
-			newTree := current.Node.clone()
-
-			// Find the matching node to expand in the new tree
-			newExpand := findNodeByName(newTree, toExpand.Name)
-			if newExpand != nil {
-				newExpand.Element1 = left
-				newExpand.Element2 = right
-			}
-
-			newPending := append([]*RecipeTreeNode{left, right}, remaining...)
-			queue = append(queue, PartialTree{
-				Node:    newTree,
-				Pending: newPending,
-			})
 		}
 	}
 
-	if len(result) == 0 {
-		return nil, fmt.Errorf("no valid trees found for %s", targetGraphNode.Name)
+	// Worker pool
+	const workerCount = 8
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for current := range queue {
+				mu.Lock()
+				if resultCount >= maxTreeCount {
+					mu.Unlock()
+					return
+				}
+				mu.Unlock()
+
+				pending := current.Pending
+				if len(pending) == 0 {
+					mu.Lock()
+					if resultCount < maxTreeCount {
+						results <- current.Node
+						resultCount++
+					}
+					mu.Unlock()
+					continue
+				}
+
+				toExpand := pending[0]
+				remaining := pending[1:]
+
+				graphNode := getElementByName(targetGraphNode, toExpand.Name)
+				if graphNode == nil || len(graphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(graphNode.Name) {
+					queue <- PartialTree{Node: current.Node, Pending: remaining}
+					continue
+				}
+
+				for _, recipe := range graphNode.RecipesToMakeThisElement {
+					left := &RecipeTreeNode{Name: recipe.ElementOne.Name, ImagePath: recipe.ElementOne.ImagePath}
+					right := &RecipeTreeNode{Name: recipe.ElementTwo.Name, ImagePath: recipe.ElementTwo.ImagePath}
+
+					newTree := current.Node.clone()
+					newExpand := findNodeByName(newTree, toExpand.Name)
+					if newExpand != nil {
+						newExpand.Element1 = left
+						newExpand.Element2 = right
+					}
+
+					mu.Lock()
+					if resultCount < maxTreeCount {
+						queue <- PartialTree{
+							Node:    newTree,
+							Pending: append([]*RecipeTreeNode{left, right}, remaining...),
+						}
+					}
+					mu.Unlock()
+				}
+			}
+		}()
 	}
 
-	return result, nil
+	// Close queue when done
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	var final []*RecipeTreeNode
+	for tree := range results {
+		final = append(final, tree)
+		if len(final) >= maxTreeCount {
+			break
+		}
+	}
+
+	return final, nil
 }
 
 func findNodeByName(root *RecipeTreeNode, name string) *RecipeTreeNode {

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"sync"
 )
 
 func DFSFindTrees(
@@ -14,7 +15,6 @@ func DFSFindTrees(
 		return nil, fmt.Errorf("targetGraphNode is nil")
 	}
 
-	// Base case: base element
 	if len(targetGraphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(targetGraphNode.Name) {
 		node := &RecipeTreeNode{
 			Name:      targetGraphNode.Name,
@@ -23,48 +23,81 @@ func DFSFindTrees(
 		return []*RecipeTreeNode{node}, nil
 	}
 
-	var allTrees []*RecipeTreeNode
+	var (
+		result []*RecipeTreeNode
+		mu     sync.Mutex
+		wg     sync.WaitGroup
+		count  = 0
+	)
 
-	// Explore all recipes for this element
+	// Buffered channel to limit creation to maxTreeCount
+	treeChan := make(chan *RecipeTreeNode, maxTreeCount)
+
 	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
-		if len(allTrees) >= maxTreeCount {
-			break
-		}
+		wg.Add(1)
+		go func(r *Recipe) {
+			defer wg.Done()
 
-		leftTrees, err1 := DFSFindTrees(nil, recipe.ElementOne, maxTreeCount, signalTreeChange)
-		if err1 != nil {
-			continue
-		}
-
-		rightTrees, err2 := DFSFindTrees(nil, recipe.ElementTwo, maxTreeCount, signalTreeChange)
-		if err2 != nil {
-			continue
-		}
-
-		for _, lt := range leftTrees {
-			if len(allTrees) >= maxTreeCount {
-				break
+			leftTrees, err1 := DFSFindTrees(nil, r.ElementOne, maxTreeCount, signalTreeChange)
+			if err1 != nil {
+				return
 			}
-			for _, rt := range rightTrees {
-				if len(allTrees) >= maxTreeCount {
+
+			rightTrees, err2 := DFSFindTrees(nil, r.ElementTwo, maxTreeCount, signalTreeChange)
+			if err2 != nil {
+				return
+			}
+
+			for _, lt := range leftTrees {
+				mu.Lock()
+				if count >= maxTreeCount {
+					mu.Unlock()
 					break
 				}
+				mu.Unlock()
 
-				root := &RecipeTreeNode{
-					Name:      targetGraphNode.Name,
-					ImagePath: targetGraphNode.ImagePath,
-					Element1:  lt,
-					Element2:  rt,
+				for _, rt := range rightTrees {
+					mu.Lock()
+					if count >= maxTreeCount {
+						mu.Unlock()
+						break
+					}
+					root := &RecipeTreeNode{
+						Name:      targetGraphNode.Name,
+						ImagePath: targetGraphNode.ImagePath,
+						Element1:  lt,
+						Element2:  rt,
+					}
+					treeChan <- root
+					count++
+					mu.Unlock()
 				}
-
-				allTrees = append(allTrees, root)
 			}
+		}(recipe)
+
+		mu.Lock()
+		if count >= maxTreeCount {
+			mu.Unlock()
+			break
+		}
+		mu.Unlock()
+	}
+
+	go func() {
+		wg.Wait()
+		close(treeChan)
+	}()
+
+	for tree := range treeChan {
+		result = append(result, tree)
+		if len(result) >= maxTreeCount {
+			break
 		}
 	}
 
-	if len(allTrees) == 0 {
+	if len(result) == 0 {
 		return nil, fmt.Errorf("no valid trees found for %s", targetGraphNode.Name)
 	}
 
-	return allTrees, nil
+	return result, nil
 }
