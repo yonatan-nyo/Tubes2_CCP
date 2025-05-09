@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"math"
 )
 
 func DFSFindTrees(
@@ -15,52 +14,57 @@ func DFSFindTrees(
 		return nil, fmt.Errorf("targetGraphNode is nil")
 	}
 
-	// Primitive base elements (cannot be crafted further)
-	if len(targetGraphNode.RecipesToMakeThisElement) == 0 {
+	// Base case: base element
+	if len(targetGraphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(targetGraphNode.Name) {
 		node := &RecipeTreeNode{
-			Name:                   targetGraphNode.Name,
-			ImagePath:              targetGraphNode.ImagePath,
-			MinimumNodesRecipeTree: 0,
+			Name:      targetGraphNode.Name,
+			ImagePath: targetGraphNode.ImagePath,
 		}
 		return []*RecipeTreeNode{node}, nil
 	}
 
-	minNodeCount := math.MaxInt32
-	var bestTrees []*RecipeTreeNode
+	var allTrees []*RecipeTreeNode
 
+	// Explore all recipes for this element
 	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
-		leftTrees, err1 := DFSFindTrees(nil, recipe.ElementOne, maxTreeCount, signalTreeChange)
-		rightTrees, err2 := DFSFindTrees(nil, recipe.ElementTwo, maxTreeCount, signalTreeChange)
+		if len(allTrees) >= maxTreeCount {
+			break
+		}
 
-		if err1 != nil || err2 != nil {
+		leftTrees, err1 := DFSFindTrees(nil, recipe.ElementOne, maxTreeCount, signalTreeChange)
+		if err1 != nil {
+			continue
+		}
+
+		rightTrees, err2 := DFSFindTrees(nil, recipe.ElementTwo, maxTreeCount, signalTreeChange)
+		if err2 != nil {
 			continue
 		}
 
 		for _, lt := range leftTrees {
+			if len(allTrees) >= maxTreeCount {
+				break
+			}
 			for _, rt := range rightTrees {
+				if len(allTrees) >= maxTreeCount {
+					break
+				}
+
 				root := &RecipeTreeNode{
-					Name:                   targetGraphNode.Name,
-					ImagePath:              targetGraphNode.ImagePath,
-					Element1:               lt,
-					Element2:               rt,
-					MinimumNodesRecipeTree: lt.MinimumNodesRecipeTree + rt.MinimumNodesRecipeTree + 1,
+					Name:      targetGraphNode.Name,
+					ImagePath: targetGraphNode.ImagePath,
+					Element1:  lt,
+					Element2:  rt,
 				}
 
-				if root.MinimumNodesRecipeTree < minNodeCount {
-					minNodeCount = root.MinimumNodesRecipeTree
-					bestTrees = []*RecipeTreeNode{root}
-					// signalTreeChange(root)
-				} else if root.MinimumNodesRecipeTree == minNodeCount {
-					bestTrees = append(bestTrees, root)
-				}
-
-				// Limit results if maxTreeCount is reached
-				if len(bestTrees) >= maxTreeCount {
-					return bestTrees, nil
-				}
+				allTrees = append(allTrees, root)
 			}
 		}
 	}
 
-	return bestTrees, nil
+	if len(allTrees) == 0 {
+		return nil, fmt.Errorf("no valid trees found for %s", targetGraphNode.Name)
+	}
+
+	return allTrees, nil
 }

@@ -3,11 +3,10 @@ package models
 import "fmt"
 
 type RecipeTreeNode struct {
-	Name                   string          `json:"name"`
-	ImagePath              string          `json:"image_path"`
-	Element1               *RecipeTreeNode `json:"element_1,omitempty"`
-	Element2               *RecipeTreeNode `json:"element_2,omitempty"`
-	MinimumNodesRecipeTree int             `json:"minimum_nodes_recipe_tree"`
+	Name      string          `json:"name"`
+	ImagePath string          `json:"image_path"`
+	Element1  *RecipeTreeNode `json:"element_1,omitempty"`
+	Element2  *RecipeTreeNode `json:"element_2,omitempty"`
 }
 
 func ValidateInputParams(
@@ -47,7 +46,6 @@ func GenerateRecipeTree(
 	}
 
 	if IsBaseElement(target) {
-		rootRecipeTree.MinimumNodesRecipeTree = 1
 		return []*RecipeTreeNode{rootRecipeTree}, nil
 	}
 
@@ -91,8 +89,11 @@ func ProcessRecipeTree(
 		)
 	}
 	if mode == "bfs" {
-		fmt.Println("BFSFindTreeWithMaxCount not implemented")
-		return nil, fmt.Errorf("BFSFindTreeWithMaxCount not implemented")
+		return BFSFindTrees(
+			targetGraphNode,
+			maxTreeCount,
+			signalTreeChange,
+		)
 	}
 	if mode == "bidirectional" {
 		fmt.Println("BidirectionalFindTreeWithMaxCount not implemented")

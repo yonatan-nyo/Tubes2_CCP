@@ -1,18 +1,22 @@
 package models
 
-func (root *RecipeTreeNode) clone() *RecipeTreeNode {
+func (node *RecipeTreeNode) clone() *RecipeTreeNode {
+	if node == nil {
+		return nil
+	}
+
 	clone := &RecipeTreeNode{
-		Name:                   root.Name,
-		ImagePath:              root.ImagePath,
-		MinimumNodesRecipeTree: root.MinimumNodesRecipeTree,
+		Name:      node.Name,
+		ImagePath: node.ImagePath,
 	}
 
-	if clone.Element1 == nil && clone.Element2 == nil || IsBaseElement(root.Name) {
-		return clone
+	// Only clone children if they exist
+	if node.Element1 != nil {
+		clone.Element1 = node.Element1.clone()
 	}
-
-	clone.Element1 = root.Element1.clone()
-	clone.Element2 = root.Element2.clone()
+	if node.Element2 != nil {
+		clone.Element2 = node.Element2.clone()
+	}
 
 	return clone
 }
