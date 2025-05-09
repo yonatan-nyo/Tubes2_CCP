@@ -68,3 +68,57 @@ func downloadImage(cell *goquery.Selection, elementName string) string {
 
 	return imagePath
 }
+
+func downloadImageFromIngredient(doc *goquery.Document, ingredientName string) string {
+	var imagePath string
+
+	doc.Find("table.list-table.col-list.icon-hover").Each(func(_ int, table *goquery.Selection) {
+		table.Find("td").Each(func(_ int, cell *goquery.Selection) {
+			cell.Find("a").Each(func(_ int, a *goquery.Selection) {
+				if strings.EqualFold(strings.TrimSpace(a.Text()), ingredientName) {
+					img := a.Find("img")
+					if img.Length() == 0 {
+						img = a.Parent().Find("img")
+					}
+					if img.Length() > 0 {
+						src, exists := img.Attr("data-src")
+						if !exists {
+							src, exists = img.Attr("src")
+						}
+						if exists {
+							encoded := url.QueryEscape(strings.ReplaceAll(ingredientName, " ", "_"))
+							imageFilePath := fmt.Sprintf("../backend/public/%s.png", encoded)
+							if _, err := os.Stat(imageFilePath); err == nil {
+								return
+							}
+
+							resp, err := http.Get(src)
+							if err != nil {
+								log.Printf("Failed to download ingredient image for %s: %v", ingredientName, err)
+								return
+							}
+							defer resp.Body.Close()
+
+							file, err := os.Create(imageFilePath)
+							if err != nil {
+								log.Printf("Failed to create image file for %s: %v", ingredientName, err)
+								return
+							}
+							defer file.Close()
+
+							_, err = io.Copy(file, resp.Body)
+							if err != nil {
+								log.Printf("Failed to save ingredient image for %s: %v", ingredientName, err)
+								return
+							}
+							log.Printf("Downloaded image for ingredient %s", ingredientName)
+							imagePath = imageFilePath
+						}
+					}
+				}
+			})
+		})
+	})
+
+	return imagePath
+}
