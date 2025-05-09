@@ -104,8 +104,16 @@ func ProcessRecipeTree(
 	}
 	if mode == "bfs" {
 		if findBestTree {
-			fmt.Println("BFSFindBestTree not implemented")
-			return fmt.Errorf("BFSFindBestTree not implemented")
+
+			bestTree, err := GenerateBFSFindBestTree(
+				target,
+				signalTreeChange,
+			)
+			if err != nil {
+				return fmt.Errorf("BFSFindBestTree error: %v", err)
+			}
+			*rootRecipeTree = *bestTree
+			return nil
 		} else {
 			fmt.Println("BFSFindTreeWithMaxCount not implemented")
 			return fmt.Errorf("BFSFindTreeWithMaxCount not implemented")

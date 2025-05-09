@@ -35,7 +35,7 @@ export default function RecipeTreeVisualizer() {
 
       const payload = {
         target,
-        mode: "dfs",
+        mode: "bfs",
         find_best_tree: findBestTree,
         max_tree_count: effectiveMaxTreeCount,
         delay_ms: delayMs,
@@ -68,7 +68,13 @@ export default function RecipeTreeVisualizer() {
       <h1 className="text-xl font-bold mb-4">Recipe Tree Visualizer</h1>
 
       <div className="flex flex-col gap-4 mb-4">
-        <input type="text" value={target} onChange={(e) => setTarget(e.target.value)} className="border p-2 rounded" placeholder="Target element (e.g., Water)" />
+        <input
+          type="text"
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          className="border p-2 rounded"
+          placeholder="Target element (e.g., Water)"
+        />
 
         <div className="flex items-center gap-2">
           <input
@@ -83,9 +89,22 @@ export default function RecipeTreeVisualizer() {
           <label className="text-sm">Find Best Tree</label>
         </div>
 
-        <input type="number" value={maxTreeCount} onChange={(e) => setMaxTreeCount(Number(e.target.value))} className="border p-2 rounded" disabled={findBestTree} placeholder="Max Tree Count" />
+        <input
+          type="number"
+          value={maxTreeCount}
+          onChange={(e) => setMaxTreeCount(Number(e.target.value))}
+          className="border p-2 rounded"
+          disabled={findBestTree}
+          placeholder="Max Tree Count"
+        />
 
-        <input type="number" value={delayMs} onChange={(e) => setDelayMs(Number(e.target.value))} className="border p-2 rounded" placeholder="Delay (ms)" />
+        <input
+          type="number"
+          value={delayMs}
+          onChange={(e) => setDelayMs(Number(e.target.value))}
+          className="border p-2 rounded"
+          placeholder="Delay (ms)"
+        />
 
         <button onClick={connectWebSocket} className="bg-blue-600 text-white px-4 py-2 rounded">
           Start
