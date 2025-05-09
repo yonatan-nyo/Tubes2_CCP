@@ -1,5 +1,7 @@
 package models
 
+import "fmt"
+
 func Init() {
 	InitElementsGraph()
 }
@@ -12,7 +14,7 @@ func InitElementsGraph() {
 		panic(err)
 	}
 
-	// Step 1: Create nodes for each element
+	// Initialize the left side of the table (target-recipe) the target element
 	for _, el := range elements {
 		node := &ElementsGraphNode{
 			Name:                      el.Name,
@@ -24,32 +26,34 @@ func InitElementsGraph() {
 		nameToNode[el.Name] = node
 	}
 
+	var elementsNameNotFound []string
 	for _, el := range elements {
-		node := nameToNode[el.Name]
-		// Helper function to ensure a node exists in the map
-		ensureNodeExists := func(element *ElementsGraphNode) {
-			if _, exists := nameToNode[element.Name]; !exists {
-				nameToNode[element.Name] = &ElementsGraphNode{
-					Name:                      element.Name,
-					ImagePath:                 element.ImagePath,
-					RecipesToMakeThisElement:  []*Recipe{},
-					RecipesToMakeOtherElement: []*Recipe{},
-					IsVisited:                 false,
-				}
-				// Append to baseElements
-				baseElements = append(baseElements, element.Name)
+		if _, ok := nameToNode[el.Name]; !ok {
+			elementsNameNotFound = append(elementsNameNotFound, el.Name)
+		}
+		for _, r := range el.Recipes {
+			if len(r) != 2 {
+				continue
+			}
+			ing1, ing2 := r[0], r[1]
+			_, ok1 := nameToNode[ing1]
+			if !ok1 {
+				elementsNameNotFound = append(elementsNameNotFound, ing1)
+			}
+			_, ok2 := nameToNode[ing2]
+			if !ok2 {
+				elementsNameNotFound = append(elementsNameNotFound, ing2)
 			}
 		}
-
-		// Check recipes for uninitialized nodes
-		for _, r := range append(node.RecipesToMakeThisElement, node.RecipesToMakeOtherElement...) {
-			if r.ElementOne != nil {
-				ensureNodeExists(r.ElementOne)
-			}
-			if r.ElementTwo != nil {
-				ensureNodeExists(r.ElementTwo)
-			}
+	}
+	// output the elements that are not found
+	if len(elementsNameNotFound) > 0 {
+		fmt.Println("Elements not found in the graph:")
+		for _, el := range elementsNameNotFound {
+			fmt.Println(el)
 		}
+	} else {
+		fmt.Println("All elements found in the graph")
 	}
 
 	// Step 3: Populate all RecipesToMakeThisElement and RecipesToMakeOtherElement

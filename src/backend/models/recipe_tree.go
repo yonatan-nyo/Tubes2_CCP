@@ -8,6 +8,7 @@ type RecipeTreeNode struct {
 	ImagePath              string          `json:"image_path"`
 	Element1               *RecipeTreeNode `json:"element_1,omitempty"`
 	Element2               *RecipeTreeNode `json:"element_2,omitempty"`
+	IsParentElement        map[string]bool `json:"is_parent_element,omitempty"`
 	MinimumNodesRecipeTree int             `json:"minimum_nodes_recipe_tree"`
 }
 
@@ -150,5 +151,36 @@ func isTreeComplete(
 	if solutionRecipeTreeNode.Element2 != nil {
 		return IsBaseElement(solutionRecipeTreeNode.Element2.Name)
 	}
+	return false
+}
+
+/* Clone the tree to avoid modifying the original during traversal
+   This is a deep copy function to ensure the original tree remains unchanged */
+func cloneTree(node *RecipeTreeNode) *RecipeTreeNode {
+	if node == nil {
+		return nil
+	}
+	return &RecipeTreeNode{
+		Name:                   node.Name,
+		ImagePath:              node.ImagePath,
+		Element1:               cloneTree(node.Element1),
+		Element2:               cloneTree(node.Element2),
+		IsParentElement:        node.IsParentElement,
+		MinimumNodesRecipeTree: node.MinimumNodesRecipeTree,
+	}
+}
+
+// if the recipe element is in isParentElement map of the node
+// its gonna
+func isMakingCycle(node *RecipeTreeNode, recipe *RecipeTreeNode) bool {
+	if node.IsParentElement == nil {
+		node.IsParentElement = make(map[string]bool)
+	}
+
+	// check if the recipe is in the isParentElement map
+	if _, ok := node.IsParentElement[recipe.Name]; ok {
+		return true
+	}
+
 	return false
 }

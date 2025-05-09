@@ -26,7 +26,7 @@ func main() {
 	models.Init()
 	mux := http.NewServeMux()
 
-	models.Debug(models.ElementsGraph, -1)
+	// models.Debug(models.ElementsGraph, -1)
 	routes.RegisterRoutes(mux)
 
 	// Wrap all routes with CORS
