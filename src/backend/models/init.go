@@ -102,6 +102,21 @@ func InitElementsGraph() {
 			})
 		}
 	}
+
+	// for every element that doesnt have recipe to make this element, append to basics
+	for _, node := range nameToNode {
+		if node.Name == "Air" || node.Name == "Earth" || node.Name == "Fire" || node.Name == "Water" {
+			continue
+		}
+		if len(node.RecipesToMakeThisElement) == 0 {
+			ElementsGraph.RecipesToMakeOtherElement = append(ElementsGraph.RecipesToMakeOtherElement, &Recipe{
+				ElementOne: node,
+				ElementTwo: nil,
+			})
+			baseElements = append(baseElements, node.Name)
+		}
+	}
+
 }
 
 func containsRecipe(recipes []*Recipe, recipe *Recipe) bool {

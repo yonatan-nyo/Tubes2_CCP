@@ -11,8 +11,8 @@ func GenerateDFSFindBestTree(
 		return nil, fmt.Errorf("target %s not found in elements graph", target)
 	}
 
-	parrentElementNameMap := make(map[string]bool)
-	tree, _, err := dfsBestTreeHelper(startNode, signalTreeChange, parrentElementNameMap, target)
+	visited := map[string]bool{}
+	tree, _, err := dfsBestTreeHelper(startNode, signalTreeChange, visited)
 	if err != nil {
 		return nil, err
 	}
@@ -23,8 +23,7 @@ func GenerateDFSFindBestTree(
 func dfsBestTreeHelper(
 	targetNode *ElementsGraphNode,
 	signalTreeChange func(*RecipeTreeNode, *RecipeTreeNode),
-	parentParentElement map[string]bool,
-	parentElementName string,
+	visited map[string]bool,
 ) (*RecipeTreeNode, int, error) {
 	if IsBaseElement(targetNode.Name) {
 		return &RecipeTreeNode{
@@ -34,83 +33,41 @@ func dfsBestTreeHelper(
 		}, 1, nil
 	}
 
-	// check for recipes to make this element
 	if len(targetNode.RecipesToMakeThisElement) == 0 {
 		return nil, 0, fmt.Errorf("no recipes found to make element %s", targetNode.Name)
 	}
 
-	// Check if the target node has already been visited
-	if _, ok := parentParentElement[targetNode.Name]; ok {
+	if visited[targetNode.Name] {
 		return nil, 0, fmt.Errorf("cycle detected in the graph for element %s", targetNode.Name)
 	}
 
-	// Mark the current node as visited
-	parentParentElement[parentElementName] = true
-	defer func() {
-		// Unmark the current node when backtracking
-		delete(parentParentElement, parentElementName)
-	}()
+	visited[targetNode.Name] = true
+	defer delete(visited, targetNode.Name)
 
-	// Initialize the best tree with the first recipe
-	bestMinimumNodesRecipeTreePlaceholder := int(^uint(0) >> 1) // Initialize with max int value
-	bestTree := &RecipeTreeNode{
-		Name:                   targetNode.Name,
-		ImagePath:              GetImagePath(targetNode.Name),
-		MinimumNodesRecipeTree: bestMinimumNodesRecipeTreePlaceholder,
-	}
-	bestTree.Element1 = &RecipeTreeNode{
-		Name:                   targetNode.RecipesToMakeThisElement[0].ElementOne.Name,
-		ImagePath:              GetImagePath(targetNode.RecipesToMakeThisElement[0].ElementOne.ImagePath),
-		MinimumNodesRecipeTree: bestMinimumNodesRecipeTreePlaceholder,
-	}
-	bestTree.Element2 = &RecipeTreeNode{
-		Name:                   targetNode.RecipesToMakeThisElement[0].ElementTwo.Name,
-		ImagePath:              GetImagePath(targetNode.RecipesToMakeThisElement[0].ElementTwo.ImagePath),
-		MinimumNodesRecipeTree: bestMinimumNodesRecipeTreePlaceholder,
-	}
-	// find the element1 and 2 actual cost with recursive call
-	left, leftCost, err := dfsBestTreeHelper(
-		targetNode.RecipesToMakeThisElement[0].ElementOne,
-		signalTreeChange,
-		parentParentElement,
-		targetNode.Name,
-	)
-	if err != nil {
-		return nil, 0, err
-	}
-	right, rightCost, err := dfsBestTreeHelper(
-		targetNode.RecipesToMakeThisElement[0].ElementTwo,
-		signalTreeChange,
-		parentParentElement,
-		targetNode.Name,
-	)
-	if err != nil {
-		return nil, 0, err
-	}
-	bestTree.Element1 = left
-	bestTree.Element2 = right
-	bestTree.MinimumNodesRecipeTree = leftCost + rightCost + 1
+	var bestTree *RecipeTreeNode
+	bestCost := int(^uint(0) >> 1)
+	validPathFound := false
 
-	// loop through all recipes to find the best tree
-	for _, recipe := range targetNode.RecipesToMakeThisElement[1:] {
-		left, leftCost, err := dfsBestTreeHelper(
-			recipe.ElementOne,
-			signalTreeChange,
-			parentParentElement,
-			targetNode.Name,
-		)
-		if err != nil {
-			return nil, 0, err
+	for _, recipe := range targetNode.RecipesToMakeThisElement {
+		// Avoid cycles
+		if visited[recipe.ElementOne.Name] || visited[recipe.ElementTwo.Name] {
+			continue
 		}
-		right, rightCost, err := dfsBestTreeHelper(
-			recipe.ElementTwo,
-			signalTreeChange,
-			parentParentElement,
-			targetNode.Name,
-		)
-		if err != nil {
-			return nil, 0, err
+
+		// Recursive search for both elements
+		leftVisited := copyVisitedMap(visited)
+		left, leftCost, errLeft := dfsBestTreeHelper(recipe.ElementOne, signalTreeChange, leftVisited)
+		if errLeft != nil {
+			continue
 		}
+
+		rightVisited := copyVisitedMap(visited)
+		right, rightCost, errRight := dfsBestTreeHelper(recipe.ElementTwo, signalTreeChange, rightVisited)
+		if errRight != nil {
+			continue
+		}
+
+		validPathFound = true
 		currentTree := &RecipeTreeNode{
 			Name:                   targetNode.Name,
 			ImagePath:              GetImagePath(targetNode.Name),
@@ -118,13 +75,25 @@ func dfsBestTreeHelper(
 			Element2:               right,
 			MinimumNodesRecipeTree: leftCost + rightCost + 1,
 		}
-		// Check if the current tree is better than the best tree
-		if currentTree.MinimumNodesRecipeTree < bestTree.MinimumNodesRecipeTree {
+
+		if currentTree.MinimumNodesRecipeTree < bestCost {
 			bestTree = currentTree
-			bestMinimumNodesRecipeTreePlaceholder = currentTree.MinimumNodesRecipeTree
+			bestCost = currentTree.MinimumNodesRecipeTree
 			signalTreeChange(bestTree, currentTree)
 		}
 	}
 
-	return bestTree, bestMinimumNodesRecipeTreePlaceholder, nil
+	if !validPathFound {
+		return nil, 0, fmt.Errorf("no valid recipe tree found for element %s", targetNode.Name)
+	}
+
+	return bestTree, bestCost, nil
+}
+
+func copyVisitedMap(original map[string]bool) map[string]bool {
+	newMap := make(map[string]bool, len(original))
+	for k, v := range original {
+		newMap[k] = v
+	}
+	return newMap
 }

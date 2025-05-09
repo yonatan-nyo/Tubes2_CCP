@@ -172,13 +172,13 @@ func cloneTree(node *RecipeTreeNode) *RecipeTreeNode {
 
 // if the recipe element is in isParentElement map of the node
 // its gonna
-func isMakingCycle(node *RecipeTreeNode, recipe *RecipeTreeNode) bool {
+func isMakingCycle(node *RecipeTreeNode, recipe *Recipe) bool {
 	if node.IsParentElement == nil {
 		node.IsParentElement = make(map[string]bool)
 	}
 
 	// check if the recipe is in the isParentElement map
-	if _, ok := node.IsParentElement[recipe.Name]; ok {
+	if _, ok := node.IsParentElement[recipe.TargetElementName]; ok {
 		return true
 	}
 
