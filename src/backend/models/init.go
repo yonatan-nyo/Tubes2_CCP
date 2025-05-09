@@ -1,6 +1,9 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 func Init() {
 	InitElementsGraph()
@@ -149,6 +152,33 @@ func InitElementsGraph() {
 			}
 		}
 		curTier++
+	}
+
+	// Elemen yang digunakan pada suatu recipe harus berupa elemen dengan tier lebih rendah dari elemen yang ingin dibentuk.
+	for _, node := range nameToNode {
+		// Create a new slice for recipes to keep
+		filtered := make([]*Recipe, 0, len(node.RecipesToMakeThisElement))
+
+		// Add only valid recipes to the filtered slice
+		for _, recipe := range node.RecipesToMakeThisElement {
+			shouldKeep := true
+
+			// Check if any element in the recipe has a tier >= the target node tier
+			if recipe.ElementOne != nil && recipe.ElementOne.Tier >= node.Tier {
+				shouldKeep = false
+			}
+			if recipe.ElementTwo != nil && recipe.ElementTwo.Tier >= node.Tier {
+				shouldKeep = false
+			}
+
+			// Keep only valid recipes
+			if shouldKeep {
+				filtered = append(filtered, recipe)
+			}
+		}
+
+		// Use slices to create a new slice (just to keep the import)
+		node.RecipesToMakeThisElement = slices.Clone(filtered)
 	}
 }
 

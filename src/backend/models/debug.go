@@ -6,7 +6,36 @@ import (
 )
 
 // Updated Debug function with maxDepth parameter
-func Debug(root *ElementsGraphNode, maxDepth int) {
+func Debug(root *ElementsGraphNode, maxDepth int, isTier bool) {
+	if isTier {
+		curTier := 0
+		unlocking := false
+		for {
+			for _, el := range nameToNode {
+				if el.Tier == curTier {
+					unlocking = true
+					fmt.Printf("Tier %d: %s (%s)\n", el.Tier, el.Name, el.ImagePath)
+					// recipes
+					if len(el.RecipesToMakeThisElement) > 0 {
+						fmt.Printf("  Recipes to make this: (%d)\n", len(el.RecipesToMakeThisElement))
+						for _, r := range el.RecipesToMakeThisElement {
+							if r.ElementTwo != nil {
+								fmt.Printf("    %s(%d) + %s(%d) => %s\n", r.ElementOne.Name, r.ElementOne.Tier, r.ElementTwo.Name, r.ElementTwo.Tier, el.Name)
+							} else {
+								fmt.Printf("    %s => %s\n", r.ElementOne.Name, el.Name)
+							}
+						}
+					}
+				}
+			}
+			curTier++
+			if !unlocking {
+				break
+			}
+		}
+		return
+	}
+
 	DebugBasicElementsFromRoot()
 	fmt.Println("\n=== Elements Graph Debug Output ===")
 	visited := make(map[string]bool)
@@ -17,7 +46,7 @@ func Debug(root *ElementsGraphNode, maxDepth int) {
 
 // Original Debug function for backward compatibility
 func DebugDefault(root *ElementsGraphNode) {
-	Debug(root, 1) // Default to a depth of 1 to prevent too much output
+	Debug(root, 1, false) // Default to a depth of 1 to prevent too much output
 }
 
 func DebugBasicElementsFromRoot() {

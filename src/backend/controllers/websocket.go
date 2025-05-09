@@ -13,13 +13,11 @@ import (
 type RecipeTreeRequest struct {
 	Target       string `json:"target"`
 	Mode         string `json:"mode"`
-	FindBestTree bool   `json:"find_best_tree"`
 	MaxTreeCount int    `json:"max_tree_count"`
 	DelayMs      int    `json:"delay_ms"`
 }
 
 type TreeUpdate struct {
-	BestTree      *models.RecipeTreeNode `json:"best_tree"`
 	ExploringTree *models.RecipeTreeNode `json:"exploring_tree"`
 }
 
@@ -54,10 +52,10 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		updateChan := make(chan TreeUpdate, 100)
 
 		// Signal function sends both bestTree and exploringTree to the channel
-		signallerFn := func(bestTree *models.RecipeTreeNode, exploringTree *models.RecipeTreeNode) {
+		signallerFn := func(exploringTree *models.RecipeTreeNode) {
 			if req.DelayMs > 0 { // Only send updates if DelayMs is greater than 0
 				select {
-				case updateChan <- TreeUpdate{BestTree: bestTree, ExploringTree: exploringTree}:
+				case updateChan <- TreeUpdate{ExploringTree: exploringTree}:
 				default:
 					log.Println("Warning: updateChan full, dropping update")
 				}
@@ -81,7 +79,7 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Generate the tree with live updates
-		tree, err := models.GenerateRecipeTree(req.Target, req.Mode, req.FindBestTree, req.MaxTreeCount, signallerFn)
+		trees, err := models.GenerateRecipeTree(req.Target, req.Mode, req.MaxTreeCount, signallerFn)
 		close(updateChan) // close after final tree built
 
 		if err != nil {
@@ -90,7 +88,7 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Final full tree send (optional)
-		if err := conn.WriteJSON(tree); err != nil {
+		if err := conn.WriteJSON(trees); err != nil {
 			log.Println("Final write error:", err)
 			break
 		}
