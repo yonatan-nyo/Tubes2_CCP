@@ -36,14 +36,14 @@ func printNodeWithMaxDepth(node *ElementsGraphNode, visited map[string]bool, dep
 	visited[node.Name] = true
 
 	indent := strings.Repeat("  ", depth)
-	fmt.Printf("%s- Element: %s (%s)\n", indent, node.Name, node.ImagePath)
+	fmt.Printf("%s- (%d) Element: %s (%s)\n", indent, node.Tier, node.Name, node.ImagePath)
 
 	// Print recipes to make this element
 	if len(node.RecipesToMakeThisElement) > 0 {
 		fmt.Printf("%s  Recipes to make this: (%d)\n", indent, len(node.RecipesToMakeThisElement))
 		for _, r := range node.RecipesToMakeThisElement {
 			if r.ElementTwo != nil {
-				fmt.Printf("%s    %s + %s => %s\n", indent, r.ElementOne.Name, r.ElementTwo.Name, node.Name)
+				fmt.Printf("%s    %s(%d) + %s(%d) => %s\n", indent, r.ElementOne.Name, r.ElementOne.Tier, r.ElementTwo.Name, r.ElementTwo.Tier, node.Name)
 			} else {
 				fmt.Printf("%s    %s => %s\n", indent, r.ElementOne.Name, node.Name)
 			}
@@ -51,20 +51,20 @@ func printNodeWithMaxDepth(node *ElementsGraphNode, visited map[string]bool, dep
 	}
 
 	// Print recipes where this element is used to make others
-	if len(node.RecipesToMakeOtherElement) > 0 {
-		fmt.Printf("%s  Recipes using this element to make others: (%d)\n", indent, len(node.RecipesToMakeOtherElement))
-		for _, r := range node.RecipesToMakeOtherElement {
-			// We need to determine what's the other element in the recipe and what's the target
-			if node == r.ElementOne && r.ElementTwo != nil {
-				fmt.Printf("%s    %s + %s => %s\n", indent, node.Name, r.ElementTwo.Name, r.TargetElementName)
-			} else if node == r.ElementTwo && r.ElementOne != nil {
-				fmt.Printf("%s    %s + %s => %s\n", indent, node.Name, r.ElementOne.Name, r.TargetElementName)
-			} else if r.ElementTwo == nil {
-				// This is a basic element case
-				fmt.Printf("%s    %s => %s\n", indent, node.Name, r.TargetElementName)
-			}
-		}
-	}
+	// if len(node.RecipesToMakeOtherElement) > 0 {
+	// 	fmt.Printf("%s  Recipes using this element to make others: (%d)\n", indent, len(node.RecipesToMakeOtherElement))
+	// 	for _, r := range node.RecipesToMakeOtherElement {
+	// 		// We need to determine what's the other element in the recipe and what's the target
+	// 		if node == r.ElementOne && r.ElementTwo != nil {
+	// 			fmt.Printf("%s    %s + %s => %s\n", indent, node.Name, r.ElementTwo.Name, r.TargetElementName)
+	// 		} else if node == r.ElementTwo && r.ElementOne != nil {
+	// 			fmt.Printf("%s    %s + %s => %s\n", indent, node.Name, r.ElementOne.Name, r.TargetElementName)
+	// 		} else if r.ElementTwo == nil {
+	// 			// This is a basic element case
+	// 			fmt.Printf("%s    %s => %s\n", indent, node.Name, r.TargetElementName)
+	// 		}
+	// 	}
+	// }
 
 	// Recursively print connected nodes
 	for _, r := range node.RecipesToMakeOtherElement {

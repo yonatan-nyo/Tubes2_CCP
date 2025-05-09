@@ -22,6 +22,7 @@ func InitElementsGraph() {
 			RecipesToMakeThisElement:  []*Recipe{},
 			RecipesToMakeOtherElement: []*Recipe{},
 			IsVisited:                 false,
+			Tier:                      -1,
 		}
 		nameToNode[el.Name] = node
 	}
@@ -106,6 +107,7 @@ func InitElementsGraph() {
 	// for every element that doesnt have recipe to make this element, append to basics
 	for _, node := range nameToNode {
 		if node.Name == "Air" || node.Name == "Earth" || node.Name == "Fire" || node.Name == "Water" {
+			node.Tier = 0
 			continue
 		}
 		if len(node.RecipesToMakeThisElement) == 0 {
@@ -113,10 +115,41 @@ func InitElementsGraph() {
 				ElementOne: node,
 				ElementTwo: nil,
 			})
+			node.Tier = 0
 			baseElements = append(baseElements, node.Name)
 		}
 	}
 
+	// Step 5: Set the tier for each node
+	curTier := 0
+
+	for {
+		nodesWithInitializedTier := map[string]bool{}
+		for _, node := range nameToNode {
+			if node.Tier != -1 {
+				nodesWithInitializedTier[node.Name] = true
+			}
+		}
+
+		if len(nodesWithInitializedTier) == len(nameToNode) {
+			break
+		}
+
+		// Set the tier for the next level
+		for _, node := range nameToNode {
+			if node.Tier != -1 {
+				continue
+			}
+			//check if the recipe to make this element is feasible
+			for _, recipe := range node.RecipesToMakeThisElement {
+				if nodesWithInitializedTier[recipe.ElementOne.Name] && (recipe.ElementTwo == nil || nodesWithInitializedTier[recipe.ElementTwo.Name]) {
+					node.Tier = curTier + 1
+					break
+				}
+			}
+		}
+		curTier++
+	}
 }
 
 func containsRecipe(recipes []*Recipe, recipe *Recipe) bool {

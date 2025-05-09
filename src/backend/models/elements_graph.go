@@ -10,6 +10,7 @@ type ElementsGraphNode struct {
 	ImagePath                 string    `json:"image_path"`
 	RecipesToMakeThisElement  []*Recipe `json:"recipes_to_make_this_element"`
 	RecipesToMakeOtherElement []*Recipe `json:"recipes_to_make_other_element"`
+	Tier                      int       `json:"tier"`
 	IsVisited                 bool      `json:"is_visited"`
 }
 
@@ -39,6 +40,7 @@ type ElementsGraphNodeDTO struct {
 	RecipesToMakeThisElement  []RecipeDTO `json:"recipes_to_make_this_element"`
 	RecipesToMakeOtherElement []RecipeDTO `json:"recipes_to_make_other_element"`
 	IsVisited                 bool        `json:"is_visited"`
+	Tier                      int         `json:"tier"`
 }
 
 type RecipeDTO struct {
@@ -56,6 +58,7 @@ func GetJSONDTONodes() []ElementsGraphNodeDTO {
 			RecipesToMakeThisElement:  make([]RecipeDTO, len(node.RecipesToMakeThisElement)),
 			RecipesToMakeOtherElement: make([]RecipeDTO, len(node.RecipesToMakeOtherElement)),
 			IsVisited:                 node.IsVisited,
+			Tier:                      node.Tier,
 		}
 
 		for i, recipe := range node.RecipesToMakeThisElement {
