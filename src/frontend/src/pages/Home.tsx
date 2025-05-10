@@ -7,7 +7,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
         <div className="bg-white shadow-lg rounded-lg overflow-hidden">
           <div className="px-6 py-8 sm:p-10">
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Welcome to Craft Crafter Pro</h1>
+            <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Welcome to CCP Little Alchemy 2</h1>
 
             <p className="text-lg text-gray-700 mb-6">Discover the optimal crafting paths for all your favorite items!</p>
 

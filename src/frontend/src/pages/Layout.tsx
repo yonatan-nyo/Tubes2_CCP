@@ -9,7 +9,7 @@ function Navbar() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0 flex items-center">
-            <span className="font-bold text-xl">Craft Crafter Pro</span>
+            <span className="font-bold text-xl">CCP Little Alchemy 2</span>
           </div>
           <div className="flex space-x-4">
             <Link 
@@ -56,7 +56,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="md:flex md:justify-between">
           <div className="mb-6 md:mb-0">
-            <h2 className="text-lg font-bold">Craft Crafter Pro</h2>
+            <h2 className="text-lg font-bold">CCP Little Alchemy 2</h2>
             <p className="mt-2 text-sm text-gray-400">
               Find the perfect crafting recipe for any item
             </p>
@@ -76,7 +76,7 @@ function Footer() {
         
         <div className="mt-8 border-t border-gray-700 pt-8 md:flex md:items-center md:justify-between">
           <p className="text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} Craft Crafter Pro. All rights reserved.
+            &copy; {new Date().getFullYear()} CCP. All rights reserved.
           </p>
         </div>
       </div>
