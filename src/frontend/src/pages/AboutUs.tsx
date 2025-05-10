@@ -5,7 +5,7 @@ export default function AboutUs() {
     {
       name: "Varel Tiara",
       id: "13523008",
-      image: "/Varel.jpg",
+      image: "/Varel.png",
       github: "https://github.com/varel183",
       linkedin: "https://www.linkedin.com/in/varel-tiara/",
     },
