@@ -23,7 +23,7 @@ func downloadImage(cell *goquery.Selection, elementName string) string {
 		if exists {
 			imagePath = src
 
-			encodedName := url.QueryEscape(strings.ReplaceAll(elementName, " ", "_"))
+			encodedName := (strings.ReplaceAll(elementName, " ", "_"))
 			imageFilePath := fmt.Sprintf("../backend/public/%s.png", encodedName)
 
 			// Check if the file already exists
@@ -62,7 +62,7 @@ func downloadImage(cell *goquery.Selection, elementName string) string {
 			}
 
 			log.Printf("Image for %s downloaded and saved to %s in %v", elementName, imageFilePath, time.Since(start))
-			imagePath = imageFilePath
+			imagePath = url.QueryEscape(imageFilePath)
 		}
 	})
 
@@ -86,33 +86,39 @@ func downloadImageFromIngredient(doc *goquery.Document, ingredientName string) s
 							src, exists = img.Attr("src")
 						}
 						if exists {
-							encoded := url.QueryEscape(strings.ReplaceAll(ingredientName, " ", "_"))
-							imageFilePath := fmt.Sprintf("../backend/public/%s.png", encoded)
-							if _, err := os.Stat(imageFilePath); err == nil {
+							// 1. Use raw (not escaped) name to save
+							filename := strings.ReplaceAll(ingredientName, " ", "_") + ".png"
+							rawFilePath := fmt.Sprintf("../backend/public/%s", filename)
+
+							if _, err := os.Stat(rawFilePath); err == nil {
+								// Already exists, return encoded path
+								imagePath = "/public/" + url.PathEscape(filename)
 								return
 							}
 
+							// 2. Download image
 							resp, err := http.Get(src)
 							if err != nil {
-								log.Printf("Failed to download ingredient image for %s: %v", ingredientName, err)
+								log.Printf("Failed to download image for %s: %v", ingredientName, err)
 								return
 							}
 							defer resp.Body.Close()
 
-							file, err := os.Create(imageFilePath)
+							file, err := os.Create(rawFilePath)
 							if err != nil {
-								log.Printf("Failed to create image file for %s: %v", ingredientName, err)
+								log.Printf("Failed to create file for %s: %v", ingredientName, err)
 								return
 							}
 							defer file.Close()
 
 							_, err = io.Copy(file, resp.Body)
 							if err != nil {
-								log.Printf("Failed to save ingredient image for %s: %v", ingredientName, err)
+								log.Printf("Failed to save image for %s: %v", ingredientName, err)
 								return
 							}
-							log.Printf("Downloaded image for ingredient %s", ingredientName)
-							imagePath = imageFilePath
+
+							log.Printf("Downloaded image for ingredient: %s", ingredientName)
+							imagePath = "/public/" + url.PathEscape(filename)
 						}
 					}
 				}
