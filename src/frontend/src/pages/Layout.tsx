@@ -63,13 +63,14 @@ function Footer() {
           </div>
           
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
-            <div>
+            <div className="flex flex-col">
               <h3 className="text-sm font-semibold uppercase tracking-wider">Navigation</h3>
-              <ul className="mt-4 space-y-2">
-                <li><Link to="/" className="text-sm hover:text-white">Home</Link></li>
-                <li><Link to="/Wiki" className="text-sm hover:text-white">Wiki</Link></li>
-                <li><Link to="/Visualizer" className="text-sm hover:text-white">Visualizer</Link></li>
-              </ul>
+              <div className="flex flex-row gap-2">
+              <p><Link to="/" className="text-sm hover:text-white">Home</Link></p>
+                <p><Link to="/Wiki" className="text-sm hover:text-white">Wiki</Link></p>
+                <p><Link to="/Visualizer" className="text-sm hover:text-white">Visualizer</Link></p>
+              </div>
+                
             </div>
           </div>
         </div>
