@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 )
 
 // PartialTree represents a work-in-progress tree with nodes yet to be expanded.
@@ -33,6 +34,8 @@ func BFSFindTrees(
 	}
 
 	queue := make(chan PartialTree, 1000) // Buffered channel to avoid blocking
+	enqueueCount := 0
+	dequeueCount := 0
 	results := make(chan *RecipeTreeNode, maxTreeCount)
 	var wg sync.WaitGroup
 
@@ -54,6 +57,7 @@ func BFSFindTrees(
 			Node:    root,
 			Pending: []*RecipeTreeNode{left, right},
 		}
+		enqueueCount++
 	}
 
 	// Worker pool
@@ -68,6 +72,7 @@ func BFSFindTrees(
 					mu.Unlock()
 					return
 				}
+				dequeueCount++
 				mu.Unlock()
 
 				pending := current.Pending
@@ -87,6 +92,9 @@ func BFSFindTrees(
 				graphNode := getElementByName(targetGraphNode, toExpand.Name)
 				if graphNode == nil || len(graphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(graphNode.Name) {
 					queue <- PartialTree{Node: current.Node, Pending: remaining}
+					mu.Lock()
+					enqueueCount++
+					mu.Unlock()
 					continue
 				}
 
@@ -111,12 +119,27 @@ func BFSFindTrees(
 							Node:    newTree,
 							Pending: append([]*RecipeTreeNode{left, right}, remaining...),
 						}
+						enqueueCount++
 					}
 					mu.Unlock()
 				}
 			}
 		}()
 	}
+
+	// Monitor termination condition
+	go func() {
+		time.Sleep(10 * time.Millisecond) // Give headstart for exploration before termination
+		for {
+			mu.Lock()
+			if resultCount >= maxTreeCount || enqueueCount == dequeueCount {
+				close(results)
+				mu.Unlock()
+				return
+			}
+			mu.Unlock()
+		}
+	}()
 
 	// Close queue when done
 	go func() {
