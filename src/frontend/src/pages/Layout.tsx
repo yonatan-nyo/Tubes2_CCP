@@ -6,7 +6,7 @@ function Navbar() {
   
   return (
     <nav className="bg-blue-700 text-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="w-full mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0 flex items-center">
             <span className="font-bold text-xl">CCP Little Alchemy 2</span>
