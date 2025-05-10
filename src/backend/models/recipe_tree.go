@@ -1,6 +1,9 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type RecipeTreeNode struct {
 	Name      string          `json:"name"`
@@ -34,7 +37,7 @@ func GenerateRecipeTree(
 	target string,
 	mode string,
 	maxTreeCount int,
-	signallerFn func(*RecipeTreeNode),
+	signallerFn func(*RecipeTreeNode, int, int32),
 ) ([]*RecipeTreeNode, error) {
 	if err := ValidateInputParams(target, mode, maxTreeCount); err != nil {
 		return nil, err
@@ -50,14 +53,20 @@ func GenerateRecipeTree(
 		return nil, fmt.Errorf("target %s not found or is nil in elements graph", target)
 	}
 
-	var trees []*RecipeTreeNode
-	var err error
+	var (
+		trees []*RecipeTreeNode
+	    err error
+		globalStartTime = time.Now()
+	)
+
+
 	if trees, err = ProcessRecipeTree(
 		rootRecipeTree,
 		targetGraphNode,
 		mode,
 		maxTreeCount,
 		signallerFn,
+		globalStartTime,
 	); err != nil {
 		return nil, err
 	}
@@ -74,7 +83,8 @@ func ProcessRecipeTree(
 	targetGraphNode *ElementsGraphNode,
 	mode string,
 	maxTreeCount int,
-	signalTreeChange func(*RecipeTreeNode),
+	signalTreeChange func(*RecipeTreeNode, int, int32),
+	globalStartTime time.Time,
 ) ([]*RecipeTreeNode, error) {
 	if mode == "dfs" {
 		return DFSFindTrees(
@@ -82,6 +92,7 @@ func ProcessRecipeTree(
 			targetGraphNode,
 			maxTreeCount,
 			signalTreeChange,
+			globalStartTime,
 		)
 	}
 	if mode == "bfs" {
@@ -89,6 +100,7 @@ func ProcessRecipeTree(
 			targetGraphNode,
 			maxTreeCount,
 			signalTreeChange,
+			globalStartTime,
 		)
 	}
 	if mode == "bidirectional" {

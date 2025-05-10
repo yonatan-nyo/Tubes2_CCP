@@ -3,13 +3,16 @@ package models
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 // BFSFindTrees implements BFS approach to find recipe trees
 func BFSFindTrees(
 	targetGraphNode *ElementsGraphNode,
 	maxTreeCount int,
-	signalTreeChange func(*RecipeTreeNode),
+	signalTreeChange func(*RecipeTreeNode, int, int32),
+	globalStartTime time.Time,
 ) ([]*RecipeTreeNode, error) {
 	if targetGraphNode == nil {
 		return nil, fmt.Errorf("targetGraphNode is nil")
@@ -24,11 +27,14 @@ func BFSFindTrees(
 		return []*RecipeTreeNode{node}, nil
 	}
 
-	// Variables for tracking results and synchronization
+	// Variables for tracking results, synchronization, and statistics
 	var (
-		result     []*RecipeTreeNode
-		mu         sync.Mutex
-		treesFound int = 0
+		result     	[]*RecipeTreeNode
+		treesFound 	int = 0
+		nodeCounter int32 = 0
+		mu         	sync.Mutex
+		wg 			sync.WaitGroup
+		resultChan 	= make(chan *RecipeTreeNode, maxTreeCount)
 	)
 
 	// Queue for BFS
@@ -38,10 +44,6 @@ func BFSFindTrees(
 		TreeSoFar   *RecipeTreeNode
 		IsComplete  bool
 	}
-
-	// Process each target recipe concurrently
-	var wg sync.WaitGroup
-	resultChan := make(chan *RecipeTreeNode, maxTreeCount)
 
 	// Process each initial recipe for the target element
 	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
@@ -86,6 +88,8 @@ func BFSFindTrees(
 				if !exists || elementNode == nil {
 					continue
 				}
+
+				atomic.AddInt32(&nodeCounter, 1)
 				
 				// If base element or no recipes, create a simple tree
 				if IsBaseElement(elementNode.Name) || len(elementNode.RecipesToMakeThisElement) == 0 {
@@ -162,7 +166,11 @@ func BFSFindTrees(
 												// Optionally log the recovery
 											}
 										}()
-										signalTreeChange(newTree)
+										signalTreeChange(
+											newTree,
+											int(time.Since(globalStartTime).Milliseconds()),
+											atomic.LoadInt32(&nodeCounter),
+										)
 									}()
 								}
 
@@ -210,7 +218,11 @@ func BFSFindTrees(
 							defer func() {
 								if r := recover(); r != nil {}
 							}()
-							signalTreeChange(root)
+							signalTreeChange(
+								root,
+								int(time.Since(globalStartTime).Milliseconds()),
+								atomic.LoadInt32(&nodeCounter),
+							)
 						}()
 					}
 					

@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -19,6 +18,8 @@ type RecipeTreeRequest struct {
 
 type TreeUpdate struct {
 	ExploringTree *models.RecipeTreeNode `json:"exploring_tree"`
+	DurationMs    int                    `json:"duration_ms"`
+	NodesExplored int32 				 `json:"nodes_explored"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -49,13 +50,21 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Create channel to buffer recipe tree updates
-		updateChan := make(chan TreeUpdate, 100)
+		updateChan := make(chan TreeUpdate, 1000000)
 
 		// Signal function sends both bestTree and exploringTree to the channel
-		signallerFn := func(exploringTree *models.RecipeTreeNode) {
+		signallerFn := func(
+			exploringTree *models.RecipeTreeNode,
+			durationMs int,
+			nodesExplored int32,
+		) {
 			if req.DelayMs > 0 { // Only send updates if DelayMs is greater than 0
 				select {
-				case updateChan <- TreeUpdate{ExploringTree: exploringTree}:
+				case updateChan <- TreeUpdate{
+					ExploringTree: exploringTree,
+					DurationMs: durationMs,
+					NodesExplored: nodesExplored,
+					}:
 				default:
 					log.Println("Warning: updateChan full, dropping update")
 				}

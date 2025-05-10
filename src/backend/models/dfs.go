@@ -3,13 +3,16 @@ package models
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 func DFSFindTrees(
 	rootRecipeTree *RecipeTreeNode,
 	targetGraphNode *ElementsGraphNode,
 	maxTreeCount int,
-	signalTreeChange func(*RecipeTreeNode),
+	signalTreeChange func(*RecipeTreeNode, int, int32),
+	globalStartTime time.Time,
 ) ([]*RecipeTreeNode, error) {
 	if targetGraphNode == nil {
 		return nil, fmt.Errorf("targetGraphNode is nil")
@@ -24,10 +27,11 @@ func DFSFindTrees(
 	}
 
 	var (
-		result []*RecipeTreeNode
-		mu     sync.Mutex
-		wg     sync.WaitGroup
-		count  = 0
+		result 		[]*RecipeTreeNode
+		mu     		sync.Mutex
+		wg     		sync.WaitGroup
+		count  		= 0
+		nodeCounter int32 = 0
 	)
 
 	// Buffered channel to limit creation to maxTreeCount
@@ -38,12 +42,14 @@ func DFSFindTrees(
 		go func(r *Recipe) {
 			defer wg.Done()
 
-			leftTrees, err1 := DFSFindTrees(nil, r.ElementOne, maxTreeCount, signalTreeChange)
+			atomic.AddInt32(&nodeCounter, 1)
+
+			leftTrees, err1 := DFSFindTrees(nil, r.ElementOne, maxTreeCount, signalTreeChange, globalStartTime)
 			if err1 != nil {
 				return
 			}
 
-			rightTrees, err2 := DFSFindTrees(nil, r.ElementTwo, maxTreeCount, signalTreeChange)
+			rightTrees, err2 := DFSFindTrees(nil, r.ElementTwo, maxTreeCount, signalTreeChange, globalStartTime)
 			if err2 != nil {
 				return
 			}
@@ -74,7 +80,10 @@ func DFSFindTrees(
 							defer func() {
 								if r := recover(); r != nil {}
 							}()
-							signalTreeChange(root)
+							signalTreeChange(root,
+								int(time.Since(globalStartTime).Milliseconds()),
+								atomic.LoadInt32(&nodeCounter),
+							)
 						}()
 					}
 
