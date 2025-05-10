@@ -13,7 +13,7 @@ function TreeNode({ node }: { node: RecipeTreeNode }) {
   if (!node) return null;
 
   return (
-    <div className="ml-1 border-l border-gray-300 pl-1 text-[10px] leading-tight">
+    <div className="ml-1 border-l border-gray-300 text-[10px] leading-tight bg-gray-500 rounded-lg p-2">
       <div className="font-semibold">{node.name}</div>
       <img src={node.image_path} alt={node.name} className="w-6 h-6 my-0.5" />
       <div className="flex gap-1">
@@ -162,7 +162,7 @@ export default function Visualizer() {
         {/* Main Tree View Split */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left: Final Trees with Tabs */}
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="bg-gray-200 shadow-md rounded-lg overflow-hidden">
             <div className="bg-green-100 p-4">
               <h2 className="font-bold text-lg text-green-800">Final Trees</h2>
             </div>
@@ -191,7 +191,7 @@ export default function Visualizer() {
                       </button>
                     ))}
                   </div>
-                  <div className="border border-gray-200 p-3 rounded bg-gray-50 overflow-x-auto max-h-96">
+                  <div className="border border-gray-200 p-3 rounded  overflow-x-auto max-h-96">
                     <TreeNode node={finalTrees[selectedTab]} />
                   </div>
                 </>
@@ -200,7 +200,7 @@ export default function Visualizer() {
           </div>
 
           {/* Right: Exploring Tree */}
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="bg-gray-200 shadow-md rounded-lg overflow-hidden">
             <div className="bg-yellow-100 p-4">
               <h2 className="font-bold text-lg text-yellow-800">Exploring Tree</h2>
             </div>

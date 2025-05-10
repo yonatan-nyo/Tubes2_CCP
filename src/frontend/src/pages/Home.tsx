@@ -23,12 +23,12 @@ export default function Home() {
               </div>
 
               <div className="bg-green-50 p-6 rounded-lg">
-                <h2 className="text-xl font-bold text-green-800 mb-3">Recipe Wiki</h2>
+                <h2 className="text-xl font-bold text-green-800 mb-3">Elements Encyclopedia</h2>
                 <p className="text-gray-600 mb-4">
-                  Browse all available recipes and learn how to craft any item with our comprehensive wiki.
+                  Browse all available elements and learn how to craft any item with our comprehensive encyclopedia wiki.
                 </p>
                 <Link to="/Wiki" className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                  Browse Wiki
+                  Browse Elements Encyclopedia Wiki
                 </Link>
               </div>
             </div>
