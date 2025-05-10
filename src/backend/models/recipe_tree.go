@@ -45,10 +45,6 @@ func GenerateRecipeTree(
 		ImagePath: GetImagePath(target),
 	}
 
-	if IsBaseElement(target) {
-		return []*RecipeTreeNode{rootRecipeTree}, nil
-	}
-
 	targetGraphNode, ok := nameToNode[target]
 	if !ok || targetGraphNode == nil {
 		return nil, fmt.Errorf("target %s not found or is nil in elements graph", target)

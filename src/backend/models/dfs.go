@@ -18,7 +18,7 @@ func DFSFindTrees(
 	if len(targetGraphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(targetGraphNode.Name) {
 		node := &RecipeTreeNode{
 			Name:      targetGraphNode.Name,
-			ImagePath: targetGraphNode.ImagePath,
+			ImagePath: GetImagePath(targetGraphNode.ImagePath),
 		}
 		return []*RecipeTreeNode{node}, nil
 	}
@@ -64,7 +64,7 @@ func DFSFindTrees(
 					}
 					root := &RecipeTreeNode{
 						Name:      targetGraphNode.Name,
-						ImagePath: targetGraphNode.ImagePath,
+						ImagePath: GetImagePath(targetGraphNode.ImagePath),
 						Element1:  lt,
 						Element2:  rt,
 					}

@@ -1,7 +1,9 @@
 package models
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -25,7 +27,7 @@ func BFSFindTrees(
 		return []*RecipeTreeNode{
 			{
 				Name:      targetGraphNode.Name,
-				ImagePath: targetGraphNode.ImagePath,
+				ImagePath: GetImagePath(targetGraphNode.ImagePath),
 			},
 		}, nil
 	}
@@ -36,14 +38,15 @@ func BFSFindTrees(
 
 	var mu sync.Mutex
 	resultCount := 0
+	visitedTrees := make(map[string]bool) // Track visited tree configurations
 
 	// Initial recipes
 	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
-		left := &RecipeTreeNode{Name: recipe.ElementOne.Name, ImagePath: recipe.ElementOne.ImagePath}
-		right := &RecipeTreeNode{Name: recipe.ElementTwo.Name, ImagePath: recipe.ElementTwo.ImagePath}
+		left := &RecipeTreeNode{Name: recipe.ElementOne.Name, ImagePath: GetImagePath(recipe.ElementOne.ImagePath)}
+		right := &RecipeTreeNode{Name: recipe.ElementTwo.Name, ImagePath: GetImagePath(recipe.ElementTwo.ImagePath)}
 		root := &RecipeTreeNode{
 			Name:      targetGraphNode.Name,
-			ImagePath: targetGraphNode.ImagePath,
+			ImagePath: GetImagePath(targetGraphNode.ImagePath),
 			Element1:  left,
 			Element2:  right,
 		}
@@ -87,9 +90,10 @@ func BFSFindTrees(
 					continue
 				}
 
+				// Check for new variations before processing
 				for _, recipe := range graphNode.RecipesToMakeThisElement {
-					left := &RecipeTreeNode{Name: recipe.ElementOne.Name, ImagePath: recipe.ElementOne.ImagePath}
-					right := &RecipeTreeNode{Name: recipe.ElementTwo.Name, ImagePath: recipe.ElementTwo.ImagePath}
+					left := &RecipeTreeNode{Name: recipe.ElementOne.Name, ImagePath: GetImagePath(recipe.ElementOne.ImagePath)}
+					right := &RecipeTreeNode{Name: recipe.ElementTwo.Name, ImagePath: GetImagePath(recipe.ElementTwo.ImagePath)}
 
 					newTree := current.Node.clone()
 					newExpand := findNodeByName(newTree, toExpand.Name)
@@ -98,8 +102,11 @@ func BFSFindTrees(
 						newExpand.Element2 = right
 					}
 
+					// Check if the new tree configuration has been visited
+					treeKey := newTree.GetKey() // Assuming GetKey() generates a unique identifier for the tree structure
 					mu.Lock()
-					if resultCount < maxTreeCount {
+					if !visitedTrees[treeKey] && resultCount < maxTreeCount {
+						visitedTrees[treeKey] = true
 						queue <- PartialTree{
 							Node:    newTree,
 							Pending: append([]*RecipeTreeNode{left, right}, remaining...),
@@ -157,4 +164,25 @@ func getElementByName(root *ElementsGraphNode, name string) *ElementsGraphNode {
 		}
 	}
 	return nil
+}
+
+func (node *RecipeTreeNode) GetKey() string {
+	// Create a slice to hold the parts of the key (name and children's names)
+	var parts []string
+	parts = append(parts, node.Name)
+
+	if node.Element1 != nil {
+		parts = append(parts, node.Element1.GetKey())
+	}
+	if node.Element2 != nil {
+		parts = append(parts, node.Element2.GetKey())
+	}
+
+	// Concatenate the parts into a single string (you can customize the separator if needed)
+	keyString := strings.Join(parts, "|")
+
+	// Create a SHA256 hash of the key string (you can also use MD5 if you prefer, though it is less secure)
+	hash := sha256.New()
+	hash.Write([]byte(keyString))
+	return fmt.Sprintf("%x", hash.Sum(nil)) // Return the hex-encoded hash
 }
