@@ -70,7 +70,12 @@ func DFSFindTrees(
 					}
 
 					if signalTreeChange != nil {
-						signalTreeChange(root)
+						func() {
+							defer func() {
+								if r := recover(); r != nil {}
+							}()
+							signalTreeChange(root)
+						}()
 					}
 
 					treeChan <- root

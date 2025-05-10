@@ -153,6 +153,19 @@ func BFSFindTrees(
 									Element1:  lt,
 									Element2:  rt,
 								}
+
+								// Signal tree change
+								if signalTreeChange != nil {
+									func() {
+										defer func() {
+											if r := recover(); r != nil {
+												// Optionally log the recovery
+											}
+										}()
+										signalTreeChange(newTree)
+									}()
+								}
+
 								elementTrees = append(elementTrees, newTree)
 							}
 						}
@@ -190,13 +203,18 @@ func BFSFindTrees(
 					
 					treesFound++
 					mu.Unlock()
+
+					// Signal tree change
+					if signalTreeChange != nil {
+						func() {
+							defer func() {
+								if r := recover(); r != nil {}
+							}()
+							signalTreeChange(root)
+						}()
+					}
 					
 					resultChan <- root
-					
-					// Signal tree change if callback provided
-					if signalTreeChange != nil {
-						signalTreeChange(root)
-					}
 				}
 			}
 		}(recipe)
