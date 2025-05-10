@@ -153,6 +153,12 @@ func BFSFindTrees(
 									Element1:  lt,
 									Element2:  rt,
 								}
+
+								// Signal tree change
+								if signalTreeChange != nil {
+									signalTreeChange(newTree)
+								}
+
 								elementTrees = append(elementTrees, newTree)
 							}
 						}
@@ -190,13 +196,13 @@ func BFSFindTrees(
 					
 					treesFound++
 					mu.Unlock()
-					
-					resultChan <- root
-					
-					// Signal tree change if callback provided
+
+					// Signal tree change
 					if signalTreeChange != nil {
 						signalTreeChange(root)
 					}
+					
+					resultChan <- root
 				}
 			}
 		}(recipe)
