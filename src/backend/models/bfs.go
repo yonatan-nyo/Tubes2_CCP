@@ -1,19 +1,11 @@
 package models
 
 import (
-	"crypto/sha256"
 	"fmt"
-	"strings"
 	"sync"
-	"time"
 )
 
-// PartialTree represents a work-in-progress tree with nodes yet to be expanded.
-type PartialTree struct {
-	Node    *RecipeTreeNode
-	Pending []*RecipeTreeNode
-}
-
+// BFSFindTrees implements BFS approach to find recipe trees
 func BFSFindTrees(
 	targetGraphNode *ElementsGraphNode,
 	maxTreeCount int,
@@ -23,189 +15,210 @@ func BFSFindTrees(
 		return nil, fmt.Errorf("targetGraphNode is nil")
 	}
 
-	// If it's a base element, return directly
+	// If the target is a base element or has no recipes, return it directly
 	if len(targetGraphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(targetGraphNode.Name) {
-		return []*RecipeTreeNode{
-			{
-				Name:      targetGraphNode.Name,
-				ImagePath: GetImagePath(targetGraphNode.ImagePath),
-			},
-		}, nil
-	}
-
-	queue := make(chan PartialTree, 1000) // Buffered channel to avoid blocking
-	enqueueCount := 0
-	dequeueCount := 0
-	results := make(chan *RecipeTreeNode, maxTreeCount)
-	var wg sync.WaitGroup
-
-	var mu sync.Mutex
-	resultCount := 0
-	visitedTrees := make(map[string]bool) // Track visited tree configurations
-
-	// Initial recipes
-	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
-		left := &RecipeTreeNode{Name: recipe.ElementOne.Name, ImagePath: GetImagePath(recipe.ElementOne.ImagePath)}
-		right := &RecipeTreeNode{Name: recipe.ElementTwo.Name, ImagePath: GetImagePath(recipe.ElementTwo.ImagePath)}
-		root := &RecipeTreeNode{
+		node := &RecipeTreeNode{
 			Name:      targetGraphNode.Name,
 			ImagePath: GetImagePath(targetGraphNode.ImagePath),
-			Element1:  left,
-			Element2:  right,
 		}
-		queue <- PartialTree{
-			Node:    root,
-			Pending: []*RecipeTreeNode{left, right},
-		}
-		enqueueCount++
+		return []*RecipeTreeNode{node}, nil
 	}
 
-	// Worker pool
-	const workerCount = 8
-	for i := 0; i < workerCount; i++ {
+	// Variables for tracking results and synchronization
+	var (
+		result     []*RecipeTreeNode
+		mu         sync.Mutex
+		treesFound int = 0
+	)
+
+	// Queue for BFS
+	type QueueItem struct {
+		ElementName string
+		Level       int
+		TreeSoFar   *RecipeTreeNode
+		IsComplete  bool
+	}
+
+	// Process each target recipe concurrently
+	var wg sync.WaitGroup
+	resultChan := make(chan *RecipeTreeNode, maxTreeCount)
+
+	// Process each initial recipe for the target element
+	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
 		wg.Add(1)
-		go func() {
+		go func(r *Recipe) {
 			defer wg.Done()
-			for current := range queue {
+
+			// Map to store all possible trees for each element
+			elementToTrees := make(map[string][]*RecipeTreeNode)
+			processedElements := make(map[string]bool)
+			
+			// Queue for BFS traversal
+			queue := make([]*QueueItem, 0)
+			
+			// Start with the elements needed for this recipe
+			queue = append(
+				queue,
+				&QueueItem{ElementName: r.ElementOne.Name, Level: 1, TreeSoFar: nil, IsComplete: false},
+				&QueueItem{ElementName: r.ElementTwo.Name, Level: 1, TreeSoFar: nil, IsComplete: false},
+			)
+			
+			// BFS traversal
+			for len(queue) > 0 {
 				mu.Lock()
-				if resultCount >= maxTreeCount {
+				if treesFound >= maxTreeCount {
 					mu.Unlock()
 					return
 				}
-				dequeueCount++
 				mu.Unlock()
-
-				pending := current.Pending
-				if len(pending) == 0 {
-					mu.Lock()
-					if resultCount < maxTreeCount {
-						results <- current.Node
-						resultCount++
-					}
-					mu.Unlock()
+				
+				// Get next item
+				item := queue[0]
+				queue = queue[1:] // Dequeue
+				
+				// Skip if already processed
+				if processedElements[item.ElementName] {
 					continue
 				}
-
-				toExpand := pending[0]
-				remaining := pending[1:]
-
-				graphNode := getElementByName(targetGraphNode, toExpand.Name)
-				if graphNode == nil || len(graphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(graphNode.Name) {
-					queue <- PartialTree{Node: current.Node, Pending: remaining}
-					mu.Lock()
-					enqueueCount++
-					mu.Unlock()
+				
+				// Get the graph node for this element
+				elementNode, exists := GetElementsGraphNodeByName(item.ElementName)
+				if !exists || elementNode == nil {
 					continue
 				}
-
-				// Check for new variations before processing
-				for _, recipe := range graphNode.RecipesToMakeThisElement {
-					left := &RecipeTreeNode{Name: recipe.ElementOne.Name, ImagePath: GetImagePath(recipe.ElementOne.ImagePath)}
-					right := &RecipeTreeNode{Name: recipe.ElementTwo.Name, ImagePath: GetImagePath(recipe.ElementTwo.ImagePath)}
-
-					newTree := current.Node.clone()
-					newExpand := findNodeByName(newTree, toExpand.Name)
-					if newExpand != nil {
-						newExpand.Element1 = left
-						newExpand.Element2 = right
+				
+				// If base element or no recipes, create a simple tree
+				if IsBaseElement(elementNode.Name) || len(elementNode.RecipesToMakeThisElement) == 0 {
+					simpleTree := &RecipeTreeNode{
+						Name:      elementNode.Name,
+						ImagePath: GetImagePath(elementNode.ImagePath),
 					}
-
-					// Check if the new tree configuration has been visited
-					treeKey := newTree.GetKey() // Assuming GetKey() generates a unique identifier for the tree structure
-					mu.Lock()
-					if !visitedTrees[treeKey] && resultCount < maxTreeCount {
-						visitedTrees[treeKey] = true
-						queue <- PartialTree{
-							Node:    newTree,
-							Pending: append([]*RecipeTreeNode{left, right}, remaining...),
+					elementToTrees[elementNode.Name] = []*RecipeTreeNode{simpleTree}
+					processedElements[elementNode.Name] = true
+					continue
+				}
+				
+				// If we don't have trees for all prerequisites, add back to queue with lower priority
+				if item.TreeSoFar == nil {
+					// Process each recipe for this element
+					var allPrereqsProcessed = true
+					
+					// Check if all recipes are ready to be processed
+					for _, elementRecipe := range elementNode.RecipesToMakeThisElement {
+						if !processedElements[elementRecipe.ElementOne.Name] || 
+						   !processedElements[elementRecipe.ElementTwo.Name] {
+							allPrereqsProcessed = false
+							
+							// Enqueue prerequisites with higher priority (lower level)
+							if !processedElements[elementRecipe.ElementOne.Name] {
+								queue = append(queue, &QueueItem{
+									ElementName: elementRecipe.ElementOne.Name, 
+									Level:       item.Level + 1,
+								})
+							}
+							
+							if !processedElements[elementRecipe.ElementTwo.Name] {
+								queue = append(queue, &QueueItem{
+									ElementName: elementRecipe.ElementTwo.Name, 
+									Level:       item.Level + 1,
+								})
+							}
 						}
-						enqueueCount++
 					}
-					mu.Unlock()
+					
+					// If not all prerequisites are processed, re-add this item with lower priority
+					if !allPrereqsProcessed {
+						queue = append(queue, &QueueItem{
+							ElementName: item.ElementName,
+							Level:       item.Level + 10, // Lower priority
+						})
+						continue
+					}
+					
+					// All prerequisites are processed, create trees for this element
+					var elementTrees []*RecipeTreeNode
+					
+					// Create trees for each recipe of this element
+					for _, elementRecipe := range elementNode.RecipesToMakeThisElement {
+						leftTrees := elementToTrees[elementRecipe.ElementOne.Name]
+						rightTrees := elementToTrees[elementRecipe.ElementTwo.Name]
+						
+						// Combine all possible combinations
+						for _, lt := range leftTrees {
+							for _, rt := range rightTrees {
+								// Create a new tree with this recipe
+								newTree := &RecipeTreeNode{
+									Name:      elementNode.Name,
+									ImagePath: GetImagePath(elementNode.ImagePath),
+									Element1:  lt,
+									Element2:  rt,
+								}
+								elementTrees = append(elementTrees, newTree)
+							}
+						}
+					}
+					
+					elementToTrees[elementNode.Name] = elementTrees
+					processedElements[elementNode.Name] = true
 				}
 			}
-		}()
-	}
-
-	// Monitor termination condition
-	go func() {
-		time.Sleep(10 * time.Millisecond) // Give headstart for exploration before termination
-		for {
-			mu.Lock()
-			if resultCount >= maxTreeCount || enqueueCount == dequeueCount {
-				close(results)
-				mu.Unlock()
-				return
+			
+			// After processing all elements, combine the trees for the original recipe
+			leftTrees := elementToTrees[r.ElementOne.Name]
+			rightTrees := elementToTrees[r.ElementTwo.Name]
+			
+			if leftTrees == nil || rightTrees == nil {
+				return // Missing trees for required elements
 			}
-			mu.Unlock()
-		}
-	}()
-
-	// Close queue when done
+			
+			// Create all possible combinations
+			for _, lt := range leftTrees {
+				for _, rt := range rightTrees {
+					mu.Lock()
+					if treesFound >= maxTreeCount {
+						mu.Unlock()
+						return
+					}
+					
+					// Create final tree
+					root := &RecipeTreeNode{
+						Name:      targetGraphNode.Name,
+						ImagePath: GetImagePath(targetGraphNode.ImagePath),
+						Element1:  lt,
+						Element2:  rt,
+					}
+					
+					treesFound++
+					mu.Unlock()
+					
+					resultChan <- root
+					
+					// Signal tree change if callback provided
+					if signalTreeChange != nil {
+						signalTreeChange(root)
+					}
+				}
+			}
+		}(recipe)
+	}
+	
+	// Close channel when all goroutines complete
 	go func() {
 		wg.Wait()
-		close(results)
+		close(resultChan)
 	}()
-
-	var final []*RecipeTreeNode
-	for tree := range results {
-		final = append(final, tree)
-		if len(final) >= maxTreeCount {
+	
+	// Collect results
+	for tree := range resultChan {
+		result = append(result, tree)
+		if len(result) >= maxTreeCount {
 			break
 		}
 	}
-
-	return final, nil
-}
-
-func findNodeByName(root *RecipeTreeNode, name string) *RecipeTreeNode {
-	if root == nil {
-		return nil
+	
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no complete tree found for target %s", targetGraphNode.Name)
 	}
-	if root.Name == name {
-		return root
-	}
-	if found := findNodeByName(root.Element1, name); found != nil {
-		return found
-	}
-	return findNodeByName(root.Element2, name)
-}
-
-func getElementByName(root *ElementsGraphNode, name string) *ElementsGraphNode {
-	if root == nil {
-		return nil
-	}
-	if root.Name == name {
-		return root
-	}
-	for _, recipe := range root.RecipesToMakeThisElement {
-		if found := getElementByName(recipe.ElementOne, name); found != nil {
-			return found
-		}
-		if found := getElementByName(recipe.ElementTwo, name); found != nil {
-			return found
-		}
-	}
-	return nil
-}
-
-func (node *RecipeTreeNode) GetKey() string {
-	// Create a slice to hold the parts of the key (name and children's names)
-	var parts []string
-	parts = append(parts, node.Name)
-
-	if node.Element1 != nil {
-		parts = append(parts, node.Element1.GetKey())
-	}
-	if node.Element2 != nil {
-		parts = append(parts, node.Element2.GetKey())
-	}
-
-	// Concatenate the parts into a single string (you can customize the separator if needed)
-	keyString := strings.Join(parts, "|")
-
-	// Create a SHA256 hash of the key string (you can also use MD5 if you prefer, though it is less secure)
-	hash := sha256.New()
-	hash.Write([]byte(keyString))
-	return fmt.Sprintf("%x", hash.Sum(nil)) // Return the hex-encoded hash
+	
+	return result, nil
 }

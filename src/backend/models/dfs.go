@@ -68,6 +68,11 @@ func DFSFindTrees(
 						Element1:  lt,
 						Element2:  rt,
 					}
+
+					if signalTreeChange != nil {
+						signalTreeChange(root)
+					}
+
 					treeChan <- root
 					count++
 					mu.Unlock()
