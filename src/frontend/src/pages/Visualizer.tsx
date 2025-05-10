@@ -147,7 +147,7 @@ export default function Visualizer() {
           <button 
             onClick={connectWebSocket} 
             disabled={isLoading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full"
           >
             {isLoading ? 'Processing...' : 'Start'}
           </button>
