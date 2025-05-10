@@ -156,7 +156,14 @@ func BFSFindTrees(
 
 								// Signal tree change
 								if signalTreeChange != nil {
-									signalTreeChange(newTree)
+									func() {
+										defer func() {
+											if r := recover(); r != nil {
+												// Optionally log the recovery
+											}
+										}()
+										signalTreeChange(newTree)
+									}()
 								}
 
 								elementTrees = append(elementTrees, newTree)
@@ -199,7 +206,12 @@ func BFSFindTrees(
 
 					// Signal tree change
 					if signalTreeChange != nil {
-						signalTreeChange(root)
+						func() {
+							defer func() {
+								if r := recover(); r != nil {}
+							}()
+							signalTreeChange(root)
+						}()
 					}
 					
 					resultChan <- root
