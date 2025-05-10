@@ -13,7 +13,7 @@ function TreeNode({ node }: { node: RecipeTreeNode }) {
   if (!node) return null;
 
   return (
-    <div className="ml-1 border-l border-gray-300 text-[10px] leading-tight bg-gray-500 rounded-lg p-2">
+    <div className="ml-1 border-l border-gray-200 text-[10px] leading-tight rounded-lg p-2">
       <div className="font-semibold">{node.name}</div>
       <img src={node.image_path} alt={node.name} className="w-6 h-6 my-0.5" />
       <div className="flex gap-1">
@@ -42,7 +42,7 @@ export default function Visualizer() {
     setFinalTrees([]);
     setIsLoading(true);
     setError(null);
-    
+
     const ws = new WebSocket(`ws://${BACKEND_BASE_URL}/ws`);
     wsRef.current = ws;
 
@@ -78,7 +78,7 @@ export default function Visualizer() {
       console.error("WebSocket error:", err);
       setIsLoading(false);
     };
-    
+
     ws.onclose = () => {
       console.log("WebSocket closed");
       setIsLoading(false);
@@ -93,7 +93,6 @@ export default function Visualizer() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <div className="bg-white shadow-md rounded-lg p-6">
           <h1 className="text-2xl font-bold text-blue-800 mb-6">Recipe Tree Visualizer</h1>
@@ -102,67 +101,55 @@ export default function Visualizer() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Target Item</label>
-              <input 
-                value={target} 
-                onChange={(e) => setTarget(e.target.value)} 
-                placeholder="Target" 
-                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500" 
+              <input
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                placeholder="Target"
+                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Search Algorithm</label>
-              <select 
-                value={mode} 
-                onChange={(e) => setMode(e.target.value)} 
-                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
-              >
+              <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="bfs">BFS</option>
                 <option value="dfs">DFS</option>
                 <option value="bidirectional">Bidirectional</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max Trees</label>
-              <input 
-                type="number" 
-                value={maxTreeCount} 
-                onChange={(e) => setMaxTreeCount(Number(e.target.value))} 
-                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500" 
+              <input
+                type="number"
+                value={maxTreeCount}
+                onChange={(e) => setMaxTreeCount(Number(e.target.value))}
+                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Delay (ms)</label>
-              <input 
-                type="number" 
-                value={delayMs} 
-                onChange={(e) => setDelayMs(Number(e.target.value))} 
-                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500" 
+              <input
+                type="number"
+                value={delayMs}
+                onChange={(e) => setDelayMs(Number(e.target.value))}
+                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
 
-          <button 
-            onClick={connectWebSocket} 
-            disabled={isLoading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full"
-          >
-            {isLoading ? 'Processing...' : 'Start'}
+          <button onClick={connectWebSocket} disabled={isLoading} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full">
+            {isLoading ? "Processing..." : "Start"}
           </button>
 
-          {error && (
-            <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
-          )}
+          {error && <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
         </div>
 
         {/* Main Tree View Split */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left: Final Trees with Tabs */}
-          <div className="bg-gray-200 shadow-md rounded-lg overflow-hidden">
+          <div className="bg-gray-50 shadow-md rounded-lg overflow-hidden">
             <div className="bg-green-100 p-4">
               <h2 className="font-bold text-lg text-green-800">Final Trees</h2>
             </div>
@@ -178,20 +165,15 @@ export default function Visualizer() {
                 <>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {finalTrees.map((_, idx) => (
-                      <button 
-                        key={idx} 
-                        onClick={() => setSelectedTab(idx)} 
-                        className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                          selectedTab === idx 
-                            ? "bg-green-600 text-white" 
-                            : "bg-gray-200 hover:bg-gray-300"
-                        }`}
-                      >
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedTab(idx)}
+                        className={`px-3 py-1.5 text-sm rounded-full transition-colors ${selectedTab === idx ? "bg-green-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}>
                         Tree {idx + 1}
                       </button>
                     ))}
                   </div>
-                  <div className="border border-gray-200 p-3 rounded  overflow-x-auto max-h-96">
+                  <div className="overflow-x-auto bg-green-200/30 max-h-96">
                     <TreeNode node={finalTrees[selectedTab]} />
                   </div>
                 </>
@@ -200,7 +182,7 @@ export default function Visualizer() {
           </div>
 
           {/* Right: Exploring Tree */}
-          <div className="bg-gray-200 shadow-md rounded-lg overflow-hidden">
+          <div className="bg-gray-50 shadow-md rounded-lg overflow-hidden">
             <div className="bg-yellow-100 p-4">
               <h2 className="font-bold text-lg text-yellow-800">Exploring Tree</h2>
             </div>
@@ -211,7 +193,7 @@ export default function Visualizer() {
                   <p className="text-gray-500 text-sm">Searching...</p>
                 </div>
               ) : exploringTree ? (
-                <div className="border border-gray-200 p-3 rounded bg-gray-50 overflow-x-auto max-h-96">
+                <div className="overflow-x-auto bg-yellow-200/30 max-h-96">
                   <TreeNode node={exploringTree} />
                 </div>
               ) : (
