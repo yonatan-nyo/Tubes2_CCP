@@ -42,6 +42,16 @@ function Navbar() {
             >
               Visualizer
             </Link>
+            <Link 
+              to="/AboutUs" 
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                location.pathname === '/AboutUs' 
+                  ? 'bg-blue-900 text-white' 
+                  : 'text-blue-100 hover:bg-blue-600'
+              }`}
+            >
+              About Us
+            </Link>
           </div>
         </div>
       </div>
@@ -69,6 +79,7 @@ function Footer() {
               <p><Link to="/" className="text-sm hover:text-white">Home</Link></p>
                 <p><Link to="/Wiki" className="text-sm hover:text-white">Wiki</Link></p>
                 <p><Link to="/Visualizer" className="text-sm hover:text-white">Visualizer</Link></p>
+                <p><Link to="/AboutUs" className="text-sm hover:text-white">About Us</Link></p>
               </div>
                 
             </div>
