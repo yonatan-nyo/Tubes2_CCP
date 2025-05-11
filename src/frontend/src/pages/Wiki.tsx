@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { BACKEND_BASE_URL } from "../lib/contant";
+import { BACKEND_BASE_URL, NODE_ENV } from "../lib/contant";
 
 interface Recipe {
   element_one: string;
@@ -43,7 +43,7 @@ export default function Wiki() {
   useEffect(() => {
     const fetchElements = async () => {
       try {
-        const response = await Axios(`http://${BACKEND_BASE_URL}/api/elements`);
+        const response = await Axios(`${NODE_ENV === "production" ? "https" : "http"}://${BACKEND_BASE_URL}/api/elements`);
         if (response.status < 200 || response.status >= 300) {
           throw new Error(`Error: ${response.status}`);
         }
