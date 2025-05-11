@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/joho/godotenv"
 )
 
 // CORS middleware
@@ -23,6 +25,7 @@ func withCORS(handler http.Handler) http.Handler {
 }
 
 func main() {
+	godotenv.Load()
 	models.Init()
 	mux := http.NewServeMux()
 
