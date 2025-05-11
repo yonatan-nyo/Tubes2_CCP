@@ -38,6 +38,7 @@ func GenerateRecipeTree(
 	mode string,
 	maxTreeCount int,
 	signallerFn func(*RecipeTreeNode, int, int32),
+	delayMs int,
 ) ([]*RecipeTreeNode, error) {
 	if err := ValidateInputParams(target, mode, maxTreeCount); err != nil {
 		return nil, err
@@ -54,11 +55,10 @@ func GenerateRecipeTree(
 	}
 
 	var (
-		trees []*RecipeTreeNode
-	    err error
+		trees           []*RecipeTreeNode
+		err             error
 		globalStartTime = time.Now()
 	)
-
 
 	if trees, err = ProcessRecipeTree(
 		rootRecipeTree,
@@ -67,6 +67,7 @@ func GenerateRecipeTree(
 		maxTreeCount,
 		signallerFn,
 		globalStartTime,
+		delayMs,
 	); err != nil {
 		return nil, err
 	}
@@ -85,7 +86,10 @@ func ProcessRecipeTree(
 	maxTreeCount int,
 	signalTreeChange func(*RecipeTreeNode, int, int32),
 	globalStartTime time.Time,
+	delayMs int,
 ) ([]*RecipeTreeNode, error) {
+	globalNodeCounter := int32(0)
+
 	if mode == "dfs" {
 		return DFSFindTrees(
 			rootRecipeTree,
@@ -93,6 +97,8 @@ func ProcessRecipeTree(
 			maxTreeCount,
 			signalTreeChange,
 			globalStartTime,
+			&globalNodeCounter,
+			delayMs,
 		)
 	}
 	if mode == "bfs" {
@@ -101,6 +107,8 @@ func ProcessRecipeTree(
 			maxTreeCount,
 			signalTreeChange,
 			globalStartTime,
+			&globalNodeCounter,
+			delayMs,
 		)
 	}
 	if mode == "bidirectional" {

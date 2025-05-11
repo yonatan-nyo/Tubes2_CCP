@@ -13,6 +13,8 @@ func DFSFindTrees(
 	maxTreeCount int,
 	signalTreeChange func(*RecipeTreeNode, int, int32),
 	globalStartTime time.Time,
+	globalNodeCounter *int32,
+	delayMs int,
 ) ([]*RecipeTreeNode, error) {
 	if targetGraphNode == nil {
 		return nil, fmt.Errorf("targetGraphNode is nil")
@@ -27,14 +29,12 @@ func DFSFindTrees(
 	}
 
 	var (
-		result 		[]*RecipeTreeNode
-		mu     		sync.Mutex
-		wg     		sync.WaitGroup
-		count  		= 0
-		nodeCounter int32 = 0
+		result []*RecipeTreeNode
+		mu     sync.Mutex
+		wg     sync.WaitGroup
+		count  = 0
 	)
 
-	// Buffered channel to limit creation to maxTreeCount
 	treeChan := make(chan *RecipeTreeNode, maxTreeCount)
 
 	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
@@ -42,14 +42,18 @@ func DFSFindTrees(
 		go func(r *Recipe) {
 			defer wg.Done()
 
-			atomic.AddInt32(&nodeCounter, 1)
+			if delayMs > 0 {
+				time.Sleep(time.Duration(delayMs) * time.Millisecond)
+			}
 
-			leftTrees, err1 := DFSFindTrees(nil, r.ElementOne, maxTreeCount, signalTreeChange, globalStartTime)
+			atomic.AddInt32(globalNodeCounter, 1)
+
+			leftTrees, err1 := DFSFindTrees(nil, r.ElementOne, maxTreeCount, signalTreeChange, globalStartTime, globalNodeCounter, delayMs)
 			if err1 != nil {
 				return
 			}
 
-			rightTrees, err2 := DFSFindTrees(nil, r.ElementTwo, maxTreeCount, signalTreeChange, globalStartTime)
+			rightTrees, err2 := DFSFindTrees(nil, r.ElementTwo, maxTreeCount, signalTreeChange, globalStartTime, globalNodeCounter, delayMs)
 			if err2 != nil {
 				return
 			}
@@ -68,6 +72,7 @@ func DFSFindTrees(
 						mu.Unlock()
 						break
 					}
+
 					root := &RecipeTreeNode{
 						Name:      targetGraphNode.Name,
 						ImagePath: GetImagePath(targetGraphNode.ImagePath),
@@ -78,11 +83,13 @@ func DFSFindTrees(
 					if signalTreeChange != nil {
 						func() {
 							defer func() {
-								if r := recover(); r != nil {}
+								if r := recover(); r != nil {
+								}
 							}()
-							signalTreeChange(root,
+							signalTreeChange(
+								root,
 								int(time.Since(globalStartTime).Milliseconds()),
-								atomic.LoadInt32(&nodeCounter),
+								atomic.LoadInt32(globalNodeCounter),
 							)
 						}()
 					}

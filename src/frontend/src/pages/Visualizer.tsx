@@ -70,7 +70,6 @@ export default function Visualizer() {
 
         if (Array.isArray(parsed)) {
           setFinalTrees(parsed);
-          setExploringTree(null);
           setSelectedTab(0);
           setIsLoading(false);
         }
@@ -124,11 +123,7 @@ export default function Visualizer() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Search Algorithm</label>
-              <select
-                value={mode}
-                onChange={(e) => setMode(e.target.value)}
-                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
-              >
+              <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="bfs">BFS</option>
                 <option value="dfs">DFS</option>
                 <option value="bidirectional">Bidirectional</option>
@@ -156,11 +151,7 @@ export default function Visualizer() {
             </div>
           </div>
 
-          <button
-            onClick={connectWebSocket}
-            disabled={isLoading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full"
-          >
+          <button onClick={connectWebSocket} disabled={isLoading} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full">
             {isLoading ? "Processing..." : "Start"}
           </button>
 
@@ -176,12 +167,7 @@ export default function Visualizer() {
               {finalTrees.length === 0 ? (
                 <div className="text-gray-500 text-center py-8">
                   <svg className="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                   </svg>
                   <p className="text-sm">No trees received yet. Start a search to generate results.</p>
                 </div>
@@ -192,10 +178,7 @@ export default function Visualizer() {
                       <button
                         key={idx}
                         onClick={() => setSelectedTab(idx)}
-                        className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                          selectedTab === idx ? "bg-green-600 text-white" : "bg-gray-200 hover:bg-gray-300"
-                        }`}
-                      >
+                        className={`px-3 py-1.5 text-sm rounded-full transition-colors ${selectedTab === idx ? "bg-green-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}>
                         Tree {idx + 1}
                       </button>
                     ))}
@@ -225,12 +208,7 @@ export default function Visualizer() {
               ) : (
                 <div className="text-gray-500 text-center py-8">
                   <svg className="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-sm">Waiting for exploration updates...</p>
                 </div>
