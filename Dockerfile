@@ -31,7 +31,9 @@ RUN npm install -g serve
 
 # Copy frontend build
 COPY --from=frontend-builder /app/frontend/dist ./frontend
-
+# Copy required runtime data for the backend
+COPY src/backend/data ./data
+COPY src/backend/public ./public
 # Copy Go binaries
 COPY --from=backend-builder /app/backend/backend-main ./backend
 COPY --from=scraper-builder /app/scraper/scraper-main ./scraper
