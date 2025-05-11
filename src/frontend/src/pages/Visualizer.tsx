@@ -36,6 +36,7 @@ export default function Visualizer() {
   const [error, setError] = useState<string | null>(null);
 
   const [searchStats, setSearchStats] = useState({ durationMs: 0, nodesExplored: 0 });
+  const [hasFinalStats, setHasFinalStats] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -44,6 +45,7 @@ export default function Visualizer() {
     setSearchStats({ durationMs: 0, nodesExplored: 0 });
     setIsLoading(true);
     setError(null);
+    setHasFinalStats(false);
 
     const ws = new WebSocket(`ws://${BACKEND_BASE_URL}/ws`);
     wsRef.current = ws;
@@ -60,7 +62,8 @@ export default function Visualizer() {
           setExploringTree(parsed.exploring_tree);
         }
 
-        if (typeof parsed.duration_ms === "number" && typeof parsed.nodes_explored === "number") {
+        // Only update stats if final results have not been received
+        if (typeof parsed.duration_ms === "number" && typeof parsed.nodes_explored === "number" && !hasFinalStats) {
           setSearchStats({
             durationMs: parsed.duration_ms,
             nodesExplored: parsed.nodes_explored,
@@ -80,6 +83,7 @@ export default function Visualizer() {
           });
           setSelectedTab(0);
           setIsLoading(false);
+          setHasFinalStats(true); // Lock further updates
         }
 
         if (parsed.error) {
@@ -134,7 +138,8 @@ export default function Visualizer() {
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
-                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500">
+                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
                 <option value="bfs">BFS</option>
                 <option value="dfs">DFS</option>
                 <option value="bidirectional">Bidirectional</option>
@@ -165,7 +170,8 @@ export default function Visualizer() {
           <button
             onClick={connectWebSocket}
             disabled={isLoading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full">
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full"
+          >
             {isLoading ? "Processing..." : "Start"}
           </button>
 
@@ -199,7 +205,8 @@ export default function Visualizer() {
                         onClick={() => setSelectedTab(idx)}
                         className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
                           selectedTab === idx ? "bg-green-600 text-white" : "bg-gray-200 hover:bg-gray-300"
-                        }`}>
+                        }`}
+                      >
                         Tree {idx + 1}
                       </button>
                     ))}
