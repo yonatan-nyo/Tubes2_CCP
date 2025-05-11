@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"time"
-	//"sync/atomic"
 )
 
 type QueueItem struct {
@@ -48,6 +47,10 @@ func BidirectionalFindTrees(
 	var resultTrees []*RecipeTreeNode
 
 	for len(queueUpper) > 0 && len(queueLower) > 0 && len(resultTrees) < maxTreeCount {
+		if delayMs > 0 {
+			time.Sleep(time.Duration(delayMs) * time.Millisecond)
+		}
+
 		nQueueUpper, newUpperNames := processUpper(queueUpper, visitedUpper)
 		for _, name := range newUpperNames {
 			if visitedLower[name] && name == targetGraphNode.Name {
@@ -67,6 +70,10 @@ func BidirectionalFindTrees(
 			}
 		}
 		queueUpper = nQueueUpper
+
+		if delayMs > 0 {
+			time.Sleep(time.Duration(delayMs) * time.Millisecond)
+		}
 
 		nQueueLower, newLowerNames := processLower(queueLower, visitedLower)
 		for _, name := range newLowerNames {
@@ -157,8 +164,6 @@ func treeToString(tree *RecipeTreeNode) string {
 	return tree.Name + "(" + treeToString(tree.Element1) + "," + treeToString(tree.Element2) + ")"
 }
 
-
-// Helper function to return base elements
 func GetBaseElements() []string {
-    return baseElements
+	return baseElements
 }
