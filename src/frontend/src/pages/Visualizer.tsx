@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BACKEND_BASE_URL } from "../lib/contant";
+import { BACKEND_BASE_URL, NODE_ENV } from "../lib/contant";
 
 interface RecipeTreeNode {
   name: string;
@@ -45,7 +45,7 @@ export default function Visualizer() {
     setIsLoading(true);
     setError(null);
 
-    const ws = new WebSocket(`ws://${BACKEND_BASE_URL}/ws`);
+    const ws = new WebSocket(`${NODE_ENV === "production" ? "wss" : "ws"}://${BACKEND_BASE_URL}/ws`);
     wsRef.current = ws;
 
     ws.onopen = () => {
