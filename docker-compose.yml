@@ -1,10 +1,11 @@
-version: "3.8"
-
 services:
   scraper:
     build: ./src/scraper
-    command: ["./main"]
     restart: "no"
+    volumes:
+      - ./src:/app/src
+    working_dir: /app/scraper
+    command: ["./main"]
 
   backend:
     build: ./src/backend
@@ -12,8 +13,12 @@ services:
       - "4000:4000"
     restart: always
     depends_on:
-      scraper:
-        condition: service_completed_successfully
+      - scraper
+    volumes:
+      - ./src:/app/src
+    environment:
+      - BACKEND_BASE_URL=backend:4000
+    working_dir: /app/backend
 
   frontend:
     build: ./src/frontend
@@ -21,6 +26,9 @@ services:
       - "4001:4001"
     restart: always
     environment:
-      - BACKEND_BASE_URL=backend:4000
+      - VITE_PUBLIC_BACKEND_BASE_URL=backend:4000
     depends_on:
       - backend
+
+volumes:
+  shared-data:

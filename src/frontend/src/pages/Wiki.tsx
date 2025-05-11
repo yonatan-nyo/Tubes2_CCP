@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Axios from "axios";
+import { BACKEND_BASE_URL } from "../lib/contant";
 
 interface Recipe {
   element_one: string;
@@ -19,8 +20,6 @@ interface Element {
   ImagePath?: string;
   Recipes?: string[][];
 }
-
-const BACKEND_BASE_URL = import.meta.env.VITE_PUBLIC_BACKEND_BASE_URL || "localhost:4000";
 
 export default function Wiki() {
   const [elements, setElements] = useState<Element[]>([]);

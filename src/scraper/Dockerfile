@@ -1,11 +1,11 @@
-FROM golang:1.23
+FROM golang:1.24.2
 
-WORKDIR /app
+WORKDIR /app/scraper
 
 COPY . .
 
 RUN go build -o main .
 
-EXPOSE 4000
+RUN chmod +x ./main
 
 CMD ["./main"]

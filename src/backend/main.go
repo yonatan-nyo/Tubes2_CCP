@@ -33,5 +33,5 @@ func main() {
 	handlerWithCORS := withCORS(mux)
 
 	fmt.Println("Server started on :4000")
-	log.Fatal(http.ListenAndServe("127.0.0.1:4000", handlerWithCORS))
+	log.Fatal(http.ListenAndServe("0.0.0.0:4000", handlerWithCORS))
 }

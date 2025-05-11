@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -78,12 +79,20 @@ func saveElementsToFile(elements []Element, filePath string) {
 	log.Printf("Saving elements to file: %s", filePath)
 	start := time.Now()
 
+	// Ensure the directory exists
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		log.Fatalf("Failed to create directory: %v", err)
+	}
+
+	// Create the file
 	file, err := os.Create(filePath)
 	if err != nil {
 		log.Fatalf("Failed to create file: %v", err)
 	}
 	defer file.Close()
 
+	// Write JSON to the file
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(elements); err != nil {
