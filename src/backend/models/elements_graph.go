@@ -90,7 +90,7 @@ func GetImagePath(path string) string {
 	path = strings.TrimPrefix(path, "/")
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
-		baseURL = "http://localhost:4000/"
+		baseURL = "https://nyo.kirisame.jp.net/"
 	}
 	if !strings.HasSuffix(baseURL, "/") {
 		baseURL += "/"
