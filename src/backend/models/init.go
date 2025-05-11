@@ -50,7 +50,12 @@ func InitElementsGraph() {
 			}
 		}
 	}
-	// output the elements that are not found
+	
+	for _, node := range nameToNode {
+		node.MadeFrom = make(map[string]bool)
+	}
+
+	// Output the elements that are not found
 	if len(elementsNameNotFound) > 0 {
 		fmt.Println("Elements not found in the graph:")
 		for _, el := range elementsNameNotFound {
@@ -60,7 +65,7 @@ func InitElementsGraph() {
 		fmt.Println("All elements found in the graph")
 	}
 
-	// Step 3: Populate all RecipesToMakeThisElement and RecipesToMakeOtherElement
+	// Populate all RecipesToMakeThisElement and RecipesToMakeOtherElement
 	for _, el := range elements {
 		resultNode := nameToNode[el.Name]
 		for _, r := range el.Recipes {
@@ -96,7 +101,7 @@ func InitElementsGraph() {
 		}
 	}
 
-	// Step 4: Add basic elements to root node
+	// Add basic elements to root node
 	basics := []string{"Air", "Earth", "Fire", "Water"}
 	for _, name := range basics {
 		if node, ok := nameToNode[name]; ok {
@@ -107,7 +112,7 @@ func InitElementsGraph() {
 		}
 	}
 
-	// for every element that doesnt have recipe to make this element, append to basics
+	// For every element that doesnt have recipe to make this element, append to basics
 	for _, node := range nameToNode {
 		if node.Name == "Air" || node.Name == "Earth" || node.Name == "Fire" || node.Name == "Water" {
 			node.Tier = 0
@@ -123,7 +128,7 @@ func InitElementsGraph() {
 		}
 	}
 
-	// Step 5: Set the tier for each node
+	//  the tier for each node
 	curTier := 0
 
 	for {
@@ -154,24 +159,27 @@ func InitElementsGraph() {
 		curTier++
 	}
 
-	// Step 6: Populate MadeFrom
+	// Populate MadeFrom
 	for _, node := range nameToNode {
 		for _, recipe := range node.RecipesToMakeThisElement {
 			if recipe.ElementOne != nil {
 				node.MadeFrom[recipe.ElementOne.Name] = true
-				for k := range recipe.ElementOne.MadeFrom {
-					node.MadeFrom[k] = true
+				if recipe.ElementOne.MadeFrom != nil {
+					for made := range recipe.ElementOne.MadeFrom {
+						node.MadeFrom[made] = true
+					}
 				}
 			}
 			if recipe.ElementTwo != nil {
 				node.MadeFrom[recipe.ElementTwo.Name] = true
-				for k := range recipe.ElementTwo.MadeFrom {
-					node.MadeFrom[k] = true
+				if recipe.ElementTwo.MadeFrom != nil {
+					for made := range recipe.ElementTwo.MadeFrom {
+						node.MadeFrom[made] = true
+					}
 				}
 			}
 		}
 	}
-
 
 	// Element used in a recipe must have lower tier than the target node
 	for _, node := range nameToNode {
