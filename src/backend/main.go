@@ -26,11 +26,11 @@ func main() {
 	models.Init()
 	mux := http.NewServeMux()
 
-	// models.Debug(models.ElementsGraph, -1, true)
-	routes.RegisterRoutes(mux)
-
 	// Wrap all routes with CORS
 	handlerWithCORS := withCORS(mux)
+
+	// models.Debug(models.ElementsGraph, -1, true)
+	routes.RegisterRoutes(mux)
 
 	fmt.Println("Server started on :4000")
 	log.Fatal(http.ListenAndServe("0.0.0.0:4000", handlerWithCORS))
