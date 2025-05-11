@@ -35,11 +35,11 @@ func GetElementsGraphNodeByName(name string) (*ElementsGraphNode, bool) {
 	return node, exists
 }
 
-func (node *ElementsGraphNode) IsThisMadeFrom(target string) bool {
+func (node *ElementsGraphNode) IsThisMadeFrom(element string) bool {
 	if node.MadeFrom == nil {
 		return false
 	}
-	return node.MadeFrom[target]
+	return node.MadeFrom[element]
 }
 
 type ElementsGraphNodeDTO struct {
