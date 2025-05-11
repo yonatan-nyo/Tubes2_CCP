@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 4001",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && cp -r dist/* ../backend/dist",
     "lint": "eslint .",
     "preview": "vite preview"
   },

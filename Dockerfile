@@ -26,11 +26,6 @@ RUN go build -o scraper-main .
 FROM node:22.15.0 AS final
 WORKDIR /app
 
-# Install serve
-RUN npm install -g serve
-
-# Copy frontend build
-COPY --from=frontend-builder /app/frontend/dist ./frontend
 # Copy required runtime data for the backend
 COPY src/backend/data ./data
 COPY src/backend/public ./public
@@ -47,6 +42,5 @@ COPY start.sh .
 RUN chmod +x ./start.sh
 
 EXPOSE 4000
-EXPOSE 4001
 
 CMD ["./start.sh"]
