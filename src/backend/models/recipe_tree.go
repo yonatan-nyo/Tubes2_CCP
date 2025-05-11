@@ -39,6 +39,8 @@ func GenerateRecipeTree(
 	maxTreeCount int,
 	signallerFn func(*RecipeTreeNode, int, int32),
 	delayMs int,
+	globalStartTime time.Time,
+	globalNodeCount *int32,
 ) ([]*RecipeTreeNode, error) {
 	if err := ValidateInputParams(target, mode, maxTreeCount); err != nil {
 		return nil, err
@@ -55,9 +57,8 @@ func GenerateRecipeTree(
 	}
 
 	var (
-		trees           []*RecipeTreeNode
-		err             error
-		globalStartTime = time.Now()
+		trees []*RecipeTreeNode
+		err   error
 	)
 
 	if trees, err = ProcessRecipeTree(
@@ -68,6 +69,7 @@ func GenerateRecipeTree(
 		signallerFn,
 		globalStartTime,
 		delayMs,
+		globalNodeCount,
 	); err != nil {
 		return nil, err
 	}
@@ -87,8 +89,8 @@ func ProcessRecipeTree(
 	signalTreeChange func(*RecipeTreeNode, int, int32),
 	globalStartTime time.Time,
 	delayMs int,
+	globalNodeCounter *int32,
 ) ([]*RecipeTreeNode, error) {
-	globalNodeCounter := int32(0)
 
 	if mode == "dfs" {
 		return DFSFindTrees(
@@ -97,7 +99,7 @@ func ProcessRecipeTree(
 			maxTreeCount,
 			signalTreeChange,
 			globalStartTime,
-			&globalNodeCounter,
+			globalNodeCounter,
 			delayMs,
 		)
 	}
@@ -107,7 +109,7 @@ func ProcessRecipeTree(
 			maxTreeCount,
 			signalTreeChange,
 			globalStartTime,
-			&globalNodeCounter,
+			globalNodeCounter,
 			delayMs,
 		)
 	}
@@ -118,32 +120,3 @@ func ProcessRecipeTree(
 
 	return nil, fmt.Errorf("invalid mode: %s", mode)
 }
-
-/* Clone the tree to avoid modifying the original during traversal
-   This is a deep copy function to ensure the original tree remains unchanged */
-// func cloneTree(node *RecipeTreeNode) *RecipeTreeNode {
-// 	if node == nil {
-// 		return nil
-// 	}
-// 	return &RecipeTreeNode{
-// 		Name:                   node.Name,
-// 		ImagePath:              node.ImagePath,
-// 		Element1:               cloneTree(node.Element1),
-// 		Element2:               cloneTree(node.Element2),
-// 		IsParentElement:        node.IsParentElement,
-// 		MinimumNodesRecipeTree: node.MinimumNodesRecipeTree,
-// 	}
-// }
-
-// func isMakingCycle(node *RecipeTreeNode, recipe *Recipe) bool {
-// 	if node.IsParentElement == nil {
-// 		node.IsParentElement = make(map[string]bool)
-// 	}
-
-// 	// check if the recipe is in the isParentElement map
-// 	if _, ok := node.IsParentElement[recipe.TargetElementName]; ok {
-// 		return true
-// 	}
-
-// 	return false
-// }

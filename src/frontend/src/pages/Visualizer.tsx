@@ -68,8 +68,12 @@ export default function Visualizer() {
           });
         }
 
-        if (Array.isArray(parsed)) {
-          setFinalTrees(parsed);
+        if (typeof parsed.trees === "object" && Array.isArray(parsed.trees) && typeof parsed.duration_ms === "number" && typeof parsed.nodes_explored === "number") {
+          setFinalTrees(parsed.trees);
+          setSearchStats({
+            durationMs: parsed.duration_ms,
+            nodesExplored: parsed.nodes_explored,
+          });
           setSelectedTab(0);
           setIsLoading(false);
         }

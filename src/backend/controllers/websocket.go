@@ -30,6 +30,12 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
+type FinalResponse struct {
+	Trees         []*models.RecipeTreeNode `json:"trees"`
+	DurationMs    int                      `json:"duration_ms"`
+	NodesExplored int32                    `json:"nodes_explored"`
+}
+
 func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -38,7 +44,6 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// Add a mutex to protect writes to the websocket connection
 	var writeMu sync.Mutex
 
 	for {
@@ -54,20 +59,16 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Create a more reasonably sized buffer
 		updateChan := make(chan TreeUpdate, 1000)
-		// Track the latest update to ensure we don't miss any
 		var latestUpdate *TreeUpdate
 		var updateMu sync.Mutex
 
-		// Signal function sends exploringTree to the channel
 		signallerFn := func(
 			exploringTree *models.RecipeTreeNode,
 			durationMs int,
 			nodesExplored int32,
 		) {
-			if req.DelayMs > 0 { // Only track updates if DelayMs is greater than 0
-				// Store the latest update
+			if req.DelayMs > 0 {
 				updateMu.Lock()
 				latestUpdate = &TreeUpdate{
 					ExploringTree: exploringTree,
@@ -76,18 +77,15 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				updateMu.Unlock()
 
-				// Also try to send to channel, but don't block if full
 				select {
 				case updateChan <- *latestUpdate:
 				default:
-					// If channel is full, that's ok, we'll send the latest update on the next tick
 				}
 			}
 		}
 
-		var updateWg sync.WaitGroup // <-- Add this
+		var updateWg sync.WaitGroup
 
-		// Launch goroutine to stream updates at intervals
 		if req.DelayMs > 0 {
 			updateWg.Add(1)
 			go func() {
@@ -107,15 +105,13 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}()
 		}
+		globalStartTime := time.Now()
+		globalNodeCount := int32(0)
+		trees, err := models.GenerateRecipeTree(req.Target, req.Mode, req.MaxTreeCount, signallerFn, req.DelayMs, globalStartTime, &globalNodeCount)
 
-		// Generate the tree with live updates
-		trees, err := models.GenerateRecipeTree(req.Target, req.Mode, req.MaxTreeCount, signallerFn, req.DelayMs)
+		close(updateChan)
+		updateWg.Wait()
 
-		// Signal that tree generation is complete
-		close(updateChan) // No more updates will be sent
-		updateWg.Wait()   // ⬅️ Wait for the update-sending goroutine to finish
-
-		// Now safely send the final tree after all updates
 		writeMu.Lock()
 		if err != nil {
 			conn.WriteJSON(map[string]string{"error": err.Error()})
@@ -123,12 +119,17 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		if err := conn.WriteJSON(trees); err != nil {
+		if err := conn.WriteJSON(
+			FinalResponse{
+				Trees:         trees,
+				DurationMs:    int(time.Since(globalStartTime).Milliseconds()),
+				NodesExplored: globalNodeCount,
+			},
+		); err != nil {
 			log.Println("Final write error:", err)
 			writeMu.Unlock()
 			break
 		}
 		writeMu.Unlock()
-
 	}
 }
