@@ -154,7 +154,26 @@ func InitElementsGraph() {
 		curTier++
 	}
 
-	// Elemen yang digunakan pada suatu recipe harus berupa elemen dengan tier lebih rendah dari elemen yang ingin dibentuk.
+	// Step 6: Populate MadeFrom
+	for _, node := range nameToNode {
+		for _, recipe := range node.RecipesToMakeThisElement {
+			if recipe.ElementOne != nil {
+				node.MadeFrom[recipe.ElementOne.Name] = true
+				for k := range recipe.ElementOne.MadeFrom {
+					node.MadeFrom[k] = true
+				}
+			}
+			if recipe.ElementTwo != nil {
+				node.MadeFrom[recipe.ElementTwo.Name] = true
+				for k := range recipe.ElementTwo.MadeFrom {
+					node.MadeFrom[k] = true
+				}
+			}
+		}
+	}
+
+
+	// Element used in a recipe must have lower tier than the target node
 	for _, node := range nameToNode {
 		// Create a new slice for recipes to keep
 		filtered := make([]*Recipe, 0, len(node.RecipesToMakeThisElement))

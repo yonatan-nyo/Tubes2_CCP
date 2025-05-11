@@ -6,12 +6,13 @@ import (
 )
 
 type ElementsGraphNode struct {
-	Name                      string    `json:"name"`
-	ImagePath                 string    `json:"image_path"`
-	RecipesToMakeThisElement  []*Recipe `json:"recipes_to_make_this_element"`
-	RecipesToMakeOtherElement []*Recipe `json:"recipes_to_make_other_element"`
-	Tier                      int       `json:"tier"`
-	IsVisited                 bool      `json:"is_visited"`
+	Name                      string    	  `json:"name"`
+	ImagePath                 string    	  `json:"image_path"`
+	RecipesToMakeThisElement  []*Recipe 	  `json:"recipes_to_make_this_element"`
+	RecipesToMakeOtherElement []*Recipe 	  `json:"recipes_to_make_other_element"`
+	Tier                      int       	  `json:"tier"`
+	IsVisited                 bool      	  `json:"is_visited"`
+	MadeFrom				  map[string]bool `json:"made_from"`
 }
 
 type Recipe struct {
@@ -32,6 +33,13 @@ var nameToNode = make(map[string]*ElementsGraphNode)
 func GetElementsGraphNodeByName(name string) (*ElementsGraphNode, bool) {
 	node, exists := nameToNode[name]
 	return node, exists
+}
+
+func (node *ElementsGraphNode) IsThisMadeFrom(target string) bool {
+	if node.MadeFrom == nil {
+		return false
+	}
+	return node.MadeFrom[target]
 }
 
 type ElementsGraphNodeDTO struct {
