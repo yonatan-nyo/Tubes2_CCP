@@ -29,6 +29,7 @@ WORKDIR /app
 # Copy required runtime data for the backend
 COPY src/backend/data ./data
 COPY src/backend/public ./public
+COPY --from=frontend-builder /app/frontend/dist ./dist
 # Copy Go binaries
 COPY --from=backend-builder /app/backend/backend-main ./backend
 COPY --from=scraper-builder /app/scraper/scraper-main ./scraper
