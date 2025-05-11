@@ -146,7 +146,7 @@ func appendAllValidTargetTrees(existing []*RecipeTreeNode, newTrees []*RecipeTre
 		if t.Name == target {
 			key := t.ImagePath + t.Name + treeToString(t)
 			if !existingSet[key] {
-				existing = append(existing, t)
+				existing = append(existing, t.clone())
 				existingSet[key] = true
 				if len(existing) >= maxTreeCount {
 					break
