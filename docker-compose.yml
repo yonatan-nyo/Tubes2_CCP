@@ -1,11 +1,19 @@
 version: "3.8"
 
 services:
+  scraper:
+    build: ./src/scraper
+    command: ["./main"]
+    restart: "no"
+
   backend:
     build: ./src/backend
     ports:
       - "4000:4000"
     restart: always
+    depends_on:
+      scraper:
+        condition: service_completed_successfully
 
   frontend:
     build: ./src/frontend
