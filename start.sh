@@ -2,6 +2,6 @@
 
 # Run backend, scraper, and frontend server concurrently
 concurrently \
-  "./backend" \
   "./scraper" \
+  "./backend" \
   "serve -s ./frontend -l 4001"
