@@ -114,8 +114,15 @@ func ProcessRecipeTree(
 		)
 	}
 	if mode == "bidirectional" {
-		fmt.Println("BidirectionalFindTreeWithMaxCount not implemented")
-		return nil, fmt.Errorf("BidirectionalFindTreeWithMaxCount not implemented")
+		return BidirectionalFindTrees(
+			rootRecipeTree,
+			targetGraphNode,
+			maxTreeCount,
+			signalTreeChange,
+			globalStartTime,
+			globalNodeCounter,
+			delayMs,
+		)
 	}
 
 	return nil, fmt.Errorf("invalid mode: %s", mode)
