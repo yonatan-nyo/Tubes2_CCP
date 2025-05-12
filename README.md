@@ -1,6 +1,6 @@
 <div align="center"> 
-  <h1> Quadtree: Image Compressor </h1>
-  <h3> Tugas Kecil 2 IF2211 Strategi Algoritma </h3>
+  <h1> CCP Little Alchemy 2 Recipe Finder </h1>
+  <h3> Tugas Besar 2 IF2211 Strategi Algoritma </h3>
 
 ![Golang](https://img.shields.io/badge/Go-1.20+-0db7ed?style=for-the-badge&logo=go&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react&logoColor=black)
