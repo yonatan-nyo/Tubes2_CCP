@@ -123,7 +123,7 @@ export default function Visualizer() {
   useEffect(() => {
     const fetchElements = async () => {
       try {
-        const response = await Axios(`http://${BACKEND_BASE_URL}/api/elements`);
+        const response = await Axios(`${NODE_ENV === "production" ? "https" : "http"}://${BACKEND_BASE_URL}/api/elements`);
         if (response.status === 200) {
           setElements(response.data);
         }
