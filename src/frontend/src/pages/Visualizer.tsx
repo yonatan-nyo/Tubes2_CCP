@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { BACKEND_BASE_URL } from "../lib/contant";
+import { BACKEND_BASE_URL } from "../lib/constant";
+import Select from "react-select";
+import Axios from "axios";
 
 interface RecipeTreeNode {
   name: string;
   image_path: string;
   element_1?: RecipeTreeNode;
   element_2?: RecipeTreeNode;
+}
+
+interface Element {
+  name: string;
+  image_path: string;
 }
 
 function TreeNode({ node }: { node: RecipeTreeNode }) {
@@ -24,7 +31,8 @@ function TreeNode({ node }: { node: RecipeTreeNode }) {
 }
 
 export default function Visualizer() {
-  const [target, setTarget] = useState("Water");
+  const [elements, setElements] = useState<Element[]>([]);
+  const [target, setTarget] = useState<string | undefined>("");
   const [delayMs, setDelayMs] = useState(500);
   const [maxTreeCount, setMaxTreeCount] = useState(1);
   const [mode, setMode] = useState("bfs");
@@ -116,6 +124,30 @@ export default function Visualizer() {
     };
   }, []);
 
+  // Fetch all elements from the backend API
+  useEffect(() => {
+    const fetchElements = async () => {
+      try {
+        const response = await Axios(`http://${BACKEND_BASE_URL}/api/elements`);
+        if (response.status === 200) {
+          setElements(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch elements:", error);
+      }
+    };
+
+    fetchElements();
+  }, []);
+
+  const elementOptions = elements
+    .map((element) => ({
+      value: element.name,
+      label: element.name,
+      image: element.image_path,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -125,11 +157,14 @@ export default function Visualizer() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Target Item</label>
-              <input
-                value={target}
-                onChange={(e) => setTarget(e.target.value)}
-                placeholder="Target"
-                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+              <Select
+                options={elementOptions}
+                value={elementOptions.find((option) => option.value === target)}
+                onChange={(selected) => setTarget(selected?.value || undefined)}
+                className="text-sm"
+                placeholder="Select target element..."
+                isSearchable={true}
+                isClearable={true}
               />
             </div>
 
@@ -138,8 +173,7 @@ export default function Visualizer() {
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
-                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
-              >
+                className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="bfs">BFS</option>
                 <option value="dfs">DFS</option>
                 <option value="bidirectional">Bidirectional</option>
@@ -170,8 +204,7 @@ export default function Visualizer() {
           <button
             onClick={connectWebSocket}
             disabled={isLoading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full"
-          >
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300 w-full">
             {isLoading ? "Processing..." : "Start"}
           </button>
 
@@ -205,8 +238,7 @@ export default function Visualizer() {
                         onClick={() => setSelectedTab(idx)}
                         className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
                           selectedTab === idx ? "bg-green-600 text-white" : "bg-gray-200 hover:bg-gray-300"
-                        }`}
-                      >
+                        }`}>
                         Tree {idx + 1}
                       </button>
                     ))}

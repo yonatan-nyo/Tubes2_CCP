@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { BACKEND_BASE_URL } from "../lib/contant";
+import { BACKEND_BASE_URL } from "../lib/constant";
+import Select from "react-select";
 
 interface Recipe {
   element_one: string;
@@ -91,6 +92,14 @@ export default function Wiki() {
 
     fetchElements();
   }, []);
+
+  const elementOptions = elements
+    .map((element) => ({
+      value: element.name,
+      label: element.name,
+      image: element.image_path,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   const isElementConsideredBasic = (element: Element): boolean => {
     if (isElementBasic(element.name)) return true;
@@ -225,24 +234,22 @@ export default function Wiki() {
         {/* Controls */}
         <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
           <div className="relative flex-grow">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <input
-              type="text"
+            <Select
+              options={elementOptions}
               placeholder="Search elements..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+              value={elementOptions.find((opt) => opt.value === search) || null}
+              onChange={(selected) => {
+                if (selected) {
+                  setSearch(selected.value);
+                } else {
+                  setSearch("");
+                }
                 setCurrentPage(1);
               }}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              classNamePrefix="element-select"
+              className="w-full"
+              isSearchable={true}
+              isClearable={true}
             />
           </div>
 
