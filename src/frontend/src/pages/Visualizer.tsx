@@ -13,6 +13,7 @@ interface RecipeTreeNode {
 interface Element {
   name: string;
   image_path: string;
+  tier: number;
 }
 
 function TreeNode({ node }: { node: RecipeTreeNode }) {
@@ -54,6 +55,20 @@ export default function Visualizer() {
     setIsLoading(true);
     setError(null);
     setHasFinalStats(false);
+
+    // check target tier from elements
+    const targetElement = elements.find((element) => element.name === target);
+    if (!targetElement) {
+      setError("Invalid target element");
+      setIsLoading(false);
+      return;
+    }
+    const targetTier = targetElement.tier;
+    if (mode === "bfs" && targetTier > 10) {
+      setError("BFS is disabled for elements with tier > 10 (for the sake of my friend server).");
+      setIsLoading(false);
+      return;
+    }
 
     const ws = new WebSocket(`${NODE_ENV === "production" ? "wss" : "ws"}://${BACKEND_BASE_URL}/ws`);
     wsRef.current = ws;
