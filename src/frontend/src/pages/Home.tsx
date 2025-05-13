@@ -11,7 +11,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 overflow-hidden">
-      {/* Hero Section with Animation */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-pattern opacity-10"></div>
         <motion.div
@@ -19,7 +18,6 @@ export default function Home() {
           animate={{ opacity: isLoaded ? 1 : 0 }}
           transition={{ duration: 0.8 }}
           className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:py-24 lg:px-8 text-center relative">
-          {/* Glowing orb behind title */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-gradient-to-br from-blue-400/20 to-purple-500/20 blur-3xl -z-10"></div>
 
           <motion.h1
@@ -59,7 +57,6 @@ export default function Home() {
             </Link>
           </motion.div>
 
-          {/* Floating Elements Animation */}
           <div className="relative h-64 w-full max-w-3xl mx-auto mb-8">
             {[1, 2, 3, 4, 5, 6, 7].map((i) => (
               <motion.div
@@ -96,7 +93,6 @@ export default function Home() {
         </motion.div>
       </div>
 
-      {/* Algorithm Showcase Section - NEW */}
       <div className="bg-gradient-to-br from-slate-900 to-blue-900 py-20 relative">
         <div className="absolute inset-0 overflow-hidden opacity-20">
           <div className="absolute top-1/3 right-1/4 w-96 h-96 rounded-full bg-blue-500 mix-blend-screen blur-3xl"></div>
@@ -236,7 +232,6 @@ export default function Home() {
         `}</style>
       </div>
 
-      {/* Features Section */}
       <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 relative">
         <motion.div
           initial={{ opacity: 0 }}
@@ -334,7 +329,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Statistics Section */}
       <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-20 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden opacity-20">
           <div className="absolute top-0 left-0 -translate-x-1/2 w-96 h-96 rounded-full bg-blue-400 mix-blend-multiply blur-3xl"></div>
@@ -383,7 +377,6 @@ export default function Home() {
         </motion.div>
       </div>
 
-      {/* Call to Action - Enhanced */}
       <div className="max-w-7xl mx-auto py-20 px-4 sm:px-6">
         <motion.div
           initial={{ y: 50, opacity: 0 }}
@@ -391,7 +384,6 @@ export default function Home() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
           className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-3xl shadow-2xl overflow-hidden relative">
-          {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
 
