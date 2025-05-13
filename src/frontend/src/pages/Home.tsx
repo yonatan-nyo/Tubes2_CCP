@@ -1,6 +1,70 @@
 import { Link } from "react-router";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useAnimationControls } from "framer-motion";
+
+const FallingStar = ({ delay = 0 }) => {
+  const controls = useAnimationControls();
+
+  const starColors = [
+    "rgba(79, 70, 229, 1)",
+    "rgba(219, 39, 119, 1)",
+    "rgba(147, 51, 234, 1)",
+    "rgba(59, 130, 246, 1)",
+    "rgba(16, 185, 129, 1)",
+  ];
+
+  const randomColor = starColors[Math.floor(Math.random() * starColors.length)];
+  const glowColor = randomColor.replace("1)", "0.8)");
+
+  useEffect(() => {
+    const startAnimation = async () => {
+      await controls.start({
+        x: Math.random() * 200 - 100,
+        y: window.innerHeight + 100,
+        opacity: [1, 0.8, 0],
+        transition: {
+          duration: 2 + Math.random() * 3,
+          ease: "easeIn",
+          delay,
+        },
+      });
+
+      controls.set({
+        x: Math.random() * window.innerWidth,
+        y: -20,
+        opacity: 1,
+      });
+
+      startAnimation();
+    };
+
+    startAnimation();
+  }, [controls, delay]);
+
+  return (
+    <motion.div
+      animate={controls}
+      initial={{
+        x: Math.random() * window.innerWidth,
+        y: -20,
+        opacity: 1,
+      }}
+      className="absolute pointer-events-none z-10">
+      <div className="relative">
+        <div
+          className="w-3 h-3 rounded-full"
+          style={{
+            background: randomColor,
+            boxShadow: `0 0 15px 5px ${glowColor}, 0 0 30px 8px rgba(255,255,255,0.3)`,
+          }}></div>
+
+        <div
+          className="absolute top-0 left-1/2 w-[2px] h-20 -z-10 transform -translate-x-1/2 origin-top"
+          style={{ background: `linear-gradient(to bottom, ${randomColor}, transparent)` }}></div>
+      </div>
+    </motion.div>
+  );
+};
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -11,6 +75,18 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 overflow-hidden">
+      <div className="fixed inset-0 overflow-hidden z-0 opacity-70 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern"></div>
+        <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 opacity-20 blur-3xl"></div>
+        <div className="absolute bottom-10 left-20 w-80 h-80 rounded-full bg-gradient-to-tr from-blue-400 to-teal-300 opacity-20 blur-3xl"></div>
+
+        {Array(15)
+          .fill(0)
+          .map((_, i) => (
+            <FallingStar key={`star-${i}`} delay={i * 0.3} />
+          ))}
+      </div>
+
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-pattern opacity-10"></div>
         <motion.div
