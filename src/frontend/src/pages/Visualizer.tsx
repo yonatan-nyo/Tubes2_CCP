@@ -64,8 +64,8 @@ export default function Visualizer() {
       return;
     }
     const targetTier = targetElement.tier;
-    if (mode === "bfs" && targetTier > 10) {
-      setError("BFS is disabled for elements with tier > 10 (for the sake of my friend server).");
+    if (targetTier > 10) {
+      setError("Visualizer Disabled for elements with tier > 10 (for the sake of my friend server).");
       setIsLoading(false);
       return;
     }
