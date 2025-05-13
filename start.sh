@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# Run backend, scraper, and frontend server concurrently
-concurrently \
-  "./scraper" \
-  "./backend"
+# Run scraper first, then backend
+./scraper
+./backend
