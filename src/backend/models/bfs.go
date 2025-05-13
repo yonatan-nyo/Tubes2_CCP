@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Fungsi utama algoritma BFS
 func BFSFindTrees(
 	targetGraphNode *ElementsGraphNode,
 	maxTreeCount int,
@@ -15,10 +16,12 @@ func BFSFindTrees(
 	globalNodeCounter *int32,
 	delayMs int,
 ) ([]*RecipeTreeNode, error) {
+	// Validasi awal apakah node target valid
 	if targetGraphNode == nil {
 		return nil, fmt.Errorf("targetGraphNode is nil")
 	}
 
+	// Jika node merupakan base element atau tidak memiliki resep, langsung return sebagai hasil
 	if len(targetGraphNode.RecipesToMakeThisElement) == 0 || IsBaseElement(targetGraphNode.Name) {
 		node := &RecipeTreeNode{
 			Name:      targetGraphNode.Name,
@@ -28,13 +31,14 @@ func BFSFindTrees(
 	}
 
 	var (
-		result     []*RecipeTreeNode
-		treesFound int
-		mu         sync.Mutex
-		wg         sync.WaitGroup
-		resultChan = make(chan *RecipeTreeNode, maxTreeCount)
+		result     []*RecipeTreeNode                          // Menyimpan hasil akhir
+		treesFound int                                        // Jumlah pohon yang berhasil ditemukan
+		mu         sync.Mutex                                 // Mutex untuk sinkronisasi antar thread (multithreading)
+		wg         sync.WaitGroup                             // WaitGroup untuk menunggu semua goroutine selesai
+		resultChan = make(chan *RecipeTreeNode, maxTreeCount) // Channel untuk mengirim hasil tree
 	)
 
+	// Struktur queue BFS untuk menyimpan state saat traversal
 	type QueueItem struct {
 		ElementName string
 		Level       int
@@ -42,25 +46,31 @@ func BFSFindTrees(
 		IsComplete  bool
 	}
 
+	// Iterasi setiap resep dari target node
 	for _, recipe := range targetGraphNode.RecipesToMakeThisElement {
 		wg.Add(1)
 		go func(r *Recipe) {
 			defer wg.Done()
 
+			// Map untuk menyimpan semua tree parsial yang berhasil dibentuk per elemen
 			elementToTrees := make(map[string][]*RecipeTreeNode)
-			processedElements := make(map[string]bool)
+			processedElements := make(map[string]bool) // Menandai elemen yang sudah diproses
 			queue := make([]*QueueItem, 0)
+
+			// Memasukkan dua element dari resep ke dalam queue
 			queue = append(
 				queue,
 				&QueueItem{ElementName: r.ElementOne.Name, Level: 1, TreeSoFar: nil, IsComplete: false},
 				&QueueItem{ElementName: r.ElementTwo.Name, Level: 1, TreeSoFar: nil, IsComplete: false},
 			)
 
+			// BFS loop
 			for len(queue) > 0 {
 				if delayMs > 0 {
 					time.Sleep(time.Duration(delayMs) * time.Millisecond)
 				}
 
+				// Batasi jumlah tree yang ditemukan sesuai batas maksimum MaxTreeCount
 				mu.Lock()
 				if treesFound >= maxTreeCount {
 					mu.Unlock()
@@ -71,17 +81,21 @@ func BFSFindTrees(
 				item := queue[0]
 				queue = queue[1:]
 
+				// Continue jika sudah pernah diproses
 				if processedElements[item.ElementName] {
 					continue
 				}
 
+				// Ambil node dari nama elemen
 				elementNode, exists := GetElementsGraphNodeByName(item.ElementName)
 				if !exists || elementNode == nil {
 					continue
 				}
 
+				// Tambah counter global eksplorasi node (aman untuk goroutine)
 				atomic.AddInt32(globalNodeCounter, 1)
 
+				// Jika node adalah base element, buat node tree sederhana
 				if IsBaseElement(elementNode.Name) || len(elementNode.RecipesToMakeThisElement) == 0 {
 					simpleTree := &RecipeTreeNode{
 						Name:      elementNode.Name,
@@ -92,14 +106,17 @@ func BFSFindTrees(
 					continue
 				}
 
+				// Jika belum punya tree, tunggu semua prerequisite selesai diproses
 				if item.TreeSoFar == nil {
 					var allPrereqsProcessed = true
 
+					// Cek apakah semua bahan resep sudah tersedia
 					for _, elementRecipe := range elementNode.RecipesToMakeThisElement {
 						if !processedElements[elementRecipe.ElementOne.Name] ||
 							!processedElements[elementRecipe.ElementTwo.Name] {
 							allPrereqsProcessed = false
 
+							// Tambahkan elemen yang belum tersedia ke antrian
 							if !processedElements[elementRecipe.ElementOne.Name] {
 								queue = append(queue, &QueueItem{
 									ElementName: elementRecipe.ElementOne.Name,
@@ -115,6 +132,7 @@ func BFSFindTrees(
 						}
 					}
 
+					// Jika belum semua bahan tersedia, tunda node saat ini
 					if !allPrereqsProcessed {
 						queue = append(queue, &QueueItem{
 							ElementName: item.ElementName,
@@ -123,6 +141,7 @@ func BFSFindTrees(
 						continue
 					}
 
+					// Semua bahan tersedia, lalu mulai membentuk tree
 					var elementTrees []*RecipeTreeNode
 					for _, elementRecipe := range elementNode.RecipesToMakeThisElement {
 						leftTrees := elementToTrees[elementRecipe.ElementOne.Name]
@@ -137,6 +156,7 @@ func BFSFindTrees(
 									Element2:  rt,
 								}
 
+								// Kirim update ExploringTree ke FE Visualizer melalui WebSocket
 								if signalTreeChange != nil {
 									func() {
 										defer func() {
@@ -156,11 +176,13 @@ func BFSFindTrees(
 						}
 					}
 
+					// Simpan hasil tree yang dibentuk dan tandai elemen sebagai telah diproses
 					elementToTrees[elementNode.Name] = elementTrees
 					processedElements[elementNode.Name] = true
 				}
 			}
 
+			// Setelah seluruh subtree dibentuk, gabungkan kedua elemen bahan menjadi root
 			leftTrees := elementToTrees[r.ElementOne.Name]
 			rightTrees := elementToTrees[r.ElementTwo.Name]
 
@@ -176,6 +198,7 @@ func BFSFindTrees(
 						return
 					}
 
+					// Bentuk tree lengkap dari dua subtree
 					root := &RecipeTreeNode{
 						Name:      targetGraphNode.Name,
 						ImagePath: GetImagePath(targetGraphNode.ImagePath),
@@ -186,6 +209,7 @@ func BFSFindTrees(
 					treesFound++
 					mu.Unlock()
 
+					// Kirim update ExploringTree ke FE Visualizer melalui WebSocket
 					if signalTreeChange != nil {
 						func() {
 							defer func() {
@@ -206,11 +230,13 @@ func BFSFindTrees(
 		}(recipe)
 	}
 
+	// Tunggu semua goroutine selesai dan tutup channel hasil
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
 
+	// Ambil seluruh tree hasil dari channel
 	for tree := range resultChan {
 		result = append(result, tree)
 		if len(result) >= maxTreeCount {
@@ -218,6 +244,7 @@ func BFSFindTrees(
 		}
 	}
 
+	// Jika tidak ada tree yang ditemukan, maka return error
 	if len(result) == 0 {
 		return nil, fmt.Errorf("no complete tree found for target %s", targetGraphNode.Name)
 	}
